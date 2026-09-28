@@ -1,7 +1,7 @@
 """LLM-извлечение структурированных данных из транскрибации звонка.
 
 Тонкая обёртка над utils.ai_processor.chat_json:
-  1) загружает промпт из prompts/extractor_v1.md;
+  1) загружает промпт из prompts/extractor_{EXTRACTOR_PROMPT}.md (по умолчанию v1);
   2) вызывает chat_json(system, user) — клиент, прокси, модель, JSON-режим
      и разбор ответа уже закрыты в utils;
   3) валидирует результат через Pydantic-модель DealExtraction.
@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -23,7 +24,8 @@ from .schema import DealExtraction
 
 logger = logging.getLogger(__name__)
 
-PROMPT_PATH = Path(__file__).parent / "prompts" / "extractor_v1.md"
+PROMPT_VERSION = os.getenv("EXTRACTOR_PROMPT", "v1")
+PROMPT_PATH = Path(__file__).parent / "prompts" / f"extractor_{PROMPT_VERSION}.md"
 
 
 def _load_system_prompt() -> str:
