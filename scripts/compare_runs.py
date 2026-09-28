@@ -8,9 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
 
 RUNS = [
-    ("regex", REPORTS / "regex_baseline.txt"),
-    ("LLM v1", REPORTS / "llm_v1.txt"),
-    ("LLM v2", REPORTS / "llm_v2.txt"),
+    ("regex", REPORTS / "metrics_regex.txt"),
+    ("LLM v1", REPORTS / "metrics_llm_v1.txt"),
+    ("LLM v2", REPORTS / "metrics_llm_v2.txt"),
 ]
 
 FIELD_RE = re.compile(

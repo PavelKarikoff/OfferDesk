@@ -1,10 +1,11 @@
 """Пороговый тест качества извлечения: regex baseline не должен деградировать.
 
-Пороги выставлены по факту baseline regex (28.09.2026). При улучшении
-промпта/парсера пороги можно поднять.
+Пороги — value-match baseline regex (28.09.2026): TP только если
+нормализованные значения равны. При улучшении парсера пороги можно поднять.
 """
 from __future__ import annotations
 
+import importlib.util
 import sys
 import unittest
 from pathlib import Path
@@ -16,15 +17,23 @@ if str(ROOT) not in sys.path:
 from extraction.pipeline import extract  # noqa: E402
 from extraction.schema import DealExtraction  # noqa: E402
 
+_runner_spec = importlib.util.spec_from_file_location(
+    "run_golden_set", ROOT / "scripts" / "run_golden_set.py"
+)
+_runner = importlib.util.module_from_spec(_runner_spec)
+_runner_spec.loader.exec_module(_runner)
+_norm_for_field = _runner._norm_for_field
+
 GOLDEN = ROOT / "tests" / "golden_set"
 
 MIN_RECALL = {
     "phone": 0.9, "email": 0.9, "plot": 0.9,
-    "area_m2": 0.7, "material": 0.9,
-    "start_date": 0.4, "financing": 0.4, "budget_rub": 0.4,
+    "area_m2": 0.5, "material": 0.9,
+    "start_date": 0.3, "financing": 0.5,
+    "budget_rub": 0.0,  # regex не справляется; LLM v2 — в roadmap
 }
-MIN_PRECISION = {**MIN_RECALL, "plot": 0.8}
-MIN_EXACT_ETALON = 0.4  # 6/15
+MIN_PRECISION = {**MIN_RECALL, "plot": 0.8, "area_m2": 0.6, "start_date": 0.5}
+MIN_EXACT_ETALON = 0.5  # 8/15 = 0.53
 
 FIELDS = [
     ("phone", "client.phone"), ("email", "client.email"),
@@ -40,14 +49,6 @@ def _get(o, p):
     return o
 
 
-def _norm(v):
-    if v in (None, "", "не указано", [], {}):
-        return None
-    if isinstance(v, str):
-        return v.strip().lower()
-    return v
-
-
 class TestExtractionQuality(unittest.TestCase):
     def test_regex_baseline(self):
         stats = {n: {"tp": 0, "fp": 0, "fn": 0} for n, _ in FIELDS}
@@ -61,14 +62,18 @@ class TestExtractionQuality(unittest.TestCase):
             pred, _ = extract(txt.read_text(encoding="utf-8"), force_regex=True)
             total += 1
             for name, path in FIELDS:
-                e, g = _norm(_get(exp, path)), _norm(_get(pred, path))
+                e = _norm_for_field(name, _get(exp, path))
+                g = _norm_for_field(name, _get(pred, path))
                 if e is None and g is None:
                     continue
-                if e is not None and g is not None:
+                if e is not None and g is not None and e == g:
                     stats[name]["tp"] += 1
-                elif g is not None:
+                elif e is None and g is not None:
                     stats[name]["fp"] += 1
+                elif e is not None and g is None:
+                    stats[name]["fn"] += 1
                 else:
+                    stats[name]["fp"] += 1
                     stats[name]["fn"] += 1
             if pred.etalon_score() == exp.etalon_score():
                 exact += 1

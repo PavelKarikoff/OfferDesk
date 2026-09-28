@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -17,7 +18,8 @@ from extraction.pipeline import extract  # noqa: E402
 from extraction.schema import DealExtraction  # noqa: E402
 
 GOLDEN = ROOT / "tests" / "golden_set"
-REPORT = ROOT / "reports" / "extraction_metrics.md"
+REPORTS = ROOT / "reports"
+REPORT = REPORTS / "extraction_metrics.md"
 
 FIELDS = [
     ("phone", "client.phone"),
@@ -49,6 +51,24 @@ def _norm(v):
     if isinstance(v, str):
         return v.strip().lower()
     return v
+
+
+import re as _re
+
+
+def _norm_for_field(name: str, v):
+    """Для plot — сравнение по числу соток; для остальных — обычная нормализация.
+
+    '12 соток в Московской области' ≈ '12 соток, Московская область' → '12 соток'
+    """
+    if name != "plot":
+        return _norm(v)
+    if not v:
+        return None
+    m = _re.search(r"(\d+(?:[.,]\d+)?)\s*сот", str(v).lower())
+    if m:
+        return f"{m.group(1)} соток"
+    return _norm(v)
 
 
 def main() -> int:
@@ -89,15 +109,18 @@ def main() -> int:
         for name, path in FIELDS:
             if source == "regex" and name in LLM_ONLY_FIELDS:
                 continue
-            exp = _norm(_get(expected, path))
-            got = _norm(_get(pred, path))
+            exp = _norm_for_field(name, _get(expected, path))
+            got = _norm_for_field(name, _get(pred, path))
             if exp is None and got is None:
                 continue
-            if exp is not None and got is not None:
+            if exp is not None and got is not None and exp == got:
                 stats[name]["tp"] += 1
-            elif got is not None:
+            elif exp is None and got is not None:
                 stats[name]["fp"] += 1
+            elif exp is not None and got is None:
+                stats[name]["fn"] += 1
             else:
+                stats[name]["fp"] += 1
                 stats[name]["fn"] += 1
 
         if pred.etalon_score() == expected.etalon_score():
@@ -137,10 +160,18 @@ def main() -> int:
         )
 
     report = "\n".join(lines)
-    REPORT.parent.mkdir(exist_ok=True)
+    REPORTS.mkdir(exist_ok=True)
     REPORT.write_text(report, encoding="utf-8")
+    if args.force_regex:
+        metrics_name = "metrics_regex.txt"
+    else:
+        version = os.getenv("EXTRACTOR_PROMPT", "v1")
+        metrics_name = f"metrics_llm_{version}.txt"
+    baseline_path = REPORTS / metrics_name
+    baseline_path.write_text(report, encoding="utf-8")
     print(report)
     print(f"\nОтчёт сохранён: {REPORT}")
+    print(f"Снимок прогона: {baseline_path}")
     return 0
 
 
