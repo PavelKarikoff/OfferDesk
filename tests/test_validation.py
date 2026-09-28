@@ -67,11 +67,9 @@ class TestEscalation(unittest.TestCase):
         )
         self.assertIsNone(escalate(e, validate(e)))
 
-    def test_low_confidence_escalates(self):
+    def test_low_confidence_does_not_escalate(self):
         e = _mk(confidence={"overall": 0.3})
-        d = escalate(e)
-        self.assertIsNotNone(d)
-        self.assertTrue(any("low_confidence" in r for r in d.reasons))
+        self.assertIsNone(escalate(e))
 
     def test_legal_risk_escalates(self):
         e = _mk(
@@ -82,6 +80,17 @@ class TestEscalation(unittest.TestCase):
         self.assertIsNotNone(d)
         self.assertIn("legal_risk", d.reasons)
         self.assertIn("юрист", d.target)
+
+    def test_legal_risk_from_raw_text_when_objections_empty(self):
+        e = _mk(confidence={"overall": 0.3})
+        raw = (
+            "Здравствуйте. Мы уже судились с прошлым подрядчиком, был ужасный опыт. "
+            "Площадь 200, газобетон, телефон +7 999 555-44-33."
+        )
+        d = escalate(e, raw_text=raw)
+        self.assertIsNotNone(d)
+        self.assertEqual(d.reasons, ["legal_risk"])
+        self.assertEqual(d.target, "юрист + руководитель ОП")
 
     def test_negative_and_low_score_escalates(self):
         e = _mk(sales_signals={"sentiment": "негативный"})

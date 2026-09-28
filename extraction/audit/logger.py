@@ -72,3 +72,49 @@ def log_extraction(
     logger.info("audit_log: deal=%s source=%s grade=%s",
                 deal_id, source, lead.grade if lead else None)
     return cur.lastrowid
+
+
+def get_last_audit(conn: sqlite3.Connection, deal_id: int) -> Optional[dict]:
+    """Возвращает последнюю audit-запись по сделке или None.
+
+    Поля пригодны для проброса в шаблон карточки:
+      lead_grade, lead_score, escalation_reasons, escalation_target,
+      validation_issues, validation_warnings.
+    """
+    row = conn.execute(
+        """SELECT ts, source, etalon_score, confidence,
+                  validation_json, escalation_json, lead_grade, lead_score
+           FROM audit_log WHERE deal_id = ? ORDER BY id DESC LIMIT 1""",
+        (deal_id,),
+    ).fetchone()
+    if not row:
+        return None
+
+    def _at(key: str, idx: int):
+        """Поддержка sqlite3.Row и обычного tuple."""
+        try:
+            return row[key]
+        except (TypeError, IndexError, KeyError):
+            return row[idx]
+
+    escalation = None
+    esc_json = _at("escalation_json", 5)
+    if esc_json:
+        escalation = json.loads(esc_json)
+
+    validation = None
+    val_json = _at("validation_json", 4)
+    if val_json:
+        validation = json.loads(val_json)
+
+    return {
+        "audit_ts": _at("ts", 0),
+        "audit_source": _at("source", 1),
+        "audit_confidence": _at("confidence", 3),
+        "lead_grade": _at("lead_grade", 6) or "",
+        "lead_score": _at("lead_score", 7) or 0,
+        "escalation_reasons": escalation["reasons"] if escalation else [],
+        "escalation_target": escalation["target"] if escalation else "",
+        "validation_issues": validation["issues"] if validation else [],
+        "validation_warnings": validation["warnings"] if validation else [],
+    }

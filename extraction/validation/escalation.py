@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from ..schema import DealExtraction
 from .rules import ValidationResult
 
+# Метрика качества разбора, не триггер эскалации.
+# Regex всегда даёт 0.3; порог 0.6 эскалировал бы каждую regex-сделку.
 MIN_CONFIDENCE = 0.6
 LEGAL_KEYWORDS = ("суд", "юрид", "проверк", "травм", "угроз")
 
@@ -28,21 +30,32 @@ class EscalationDecision:
         }
 
 
-def _has_legal_risk(extraction: DealExtraction) -> bool:
-    text = " ".join(extraction.sales_signals.objections).lower()
-    return any(kw in text for kw in LEGAL_KEYWORDS)
+def _has_legal_risk(extraction: DealExtraction, raw_text: str = "") -> bool:
+    """Ищет юридические маркеры в objections И в сыром тексте.
+
+    Fallback на raw_text нужен, потому что regex-парсер не заполняет
+    sales_signals.objections — без него судебный риск на regex-сделке
+    потерялся бы.
+    """
+    sources = [
+        " ".join(extraction.sales_signals.objections).lower(),
+        raw_text.lower(),
+    ]
+    return any(kw in text for text in sources for kw in LEGAL_KEYWORDS)
 
 
 def escalate(
     extraction: DealExtraction,
     validation: ValidationResult | None = None,
+    raw_text: str = "",
 ) -> EscalationDecision | None:
     reasons: list[str] = []
 
-    if extraction.confidence.overall < MIN_CONFIDENCE:
-        reasons.append(f"low_confidence:{extraction.confidence.overall:.2f}")
+    # low_confidence — метрика, не триггер: regex всегда даёт 0.3,
+    # эскалация срабатывала бы на каждой regex-сделке.
+    # Оставляем в audit_log через confidence, но не эскалируем по нему.
 
-    if _has_legal_risk(extraction):
+    if _has_legal_risk(extraction, raw_text):
         reasons.append("legal_risk")
 
     if (

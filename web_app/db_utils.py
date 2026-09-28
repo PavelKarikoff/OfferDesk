@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import sqlite3
 
+from extraction.audit.logger import ensure_table as ensure_audit_table
+
 DEAL_EXTRA_COLUMNS: tuple[tuple[str, str], ...] = (
     ("budget", "TEXT"),
     ("area", "TEXT"),
@@ -54,6 +56,8 @@ def ensure_deal_columns(conn: sqlite3.Connection) -> None:
         migrate_deal_statuses(conn)
     except Exception:
         pass
+
+    ensure_audit_table(conn)
 
 
 def connect_db(path: str = "deals.db") -> sqlite3.Connection:

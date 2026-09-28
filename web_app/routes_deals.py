@@ -113,13 +113,17 @@ def _latest_extraction_source(timeline: list | None) -> str:
     return ""
 
 
-def _parse_transcript_for_crm(transcript: str, overrides: dict | None = None) -> dict:
-    """Пайплайн extraction → CRM-словарь. Эталон и статус считаются снаружи."""
+def _parse_transcript_for_crm(transcript: str, overrides: dict | None = None) -> tuple[dict, object, str]:
+    """Пайплайн extraction → (CRM-словарь, DealExtraction, source).
+
+    Эталон и статус считаются снаружи. extracted и source нужны для
+    валидации, эскалации, lead scoring и аудита.
+    """
     from extraction.crm_adapter import to_crm_dict
     from extraction.pipeline import extract
 
     extracted, source = extract(transcript)
-    return to_crm_dict(extracted, overrides, source=source)
+    return to_crm_dict(extracted, overrides, source=source), extracted, source
 
 
 def _missing_required_contacts(phone: str | None, email: str | None) -> list[str]:
@@ -301,8 +305,10 @@ def new_deal():
         }
         notes = request.form.get('notes', '').strip()
 
+        extracted = None
+        source = ""
         try:
-            parsed_data = _parse_transcript_for_crm(transcript, overrides)
+            parsed_data, extracted, source = _parse_transcript_for_crm(transcript, overrides)
             validation = etalon_match_score(parsed_data)
             logger.info(
                 "=== PARSED DATA ===\n%s\n=== ETALON %s%% missing=%s source=%s ===",
@@ -362,6 +368,25 @@ def new_deal():
             ),
             user_id=_actor_id(),
         )
+        # Аудит + контроль качества (только если парсер отработал)
+        if extracted is not None:
+            from extraction.validation.rules import validate
+            from extraction.validation.escalation import escalate
+            from extraction.scoring.lead_score import score as lead_score
+            from extraction.audit.logger import log_extraction
+
+            _validation = validate(extracted)
+            _escalation = escalate(extracted, _validation, raw_text=transcript)
+            _lead = lead_score(extracted)
+            log_extraction(
+                conn,
+                deal_id=deal_id,
+                extraction=extracted,
+                source=source,
+                validation=_validation,
+                escalation=_escalation,
+                lead=_lead,
+            )
         conn.commit()
         conn.close()
 
@@ -404,6 +429,11 @@ def deal_detail(deal_id):
 
     deal = _deal_with_etalon(row)
     timeline = list_actions(conn, deal_id, limit=80)
+
+    # Аудит — до закрытия соединения
+    from extraction.audit.logger import get_last_audit
+    audit = get_last_audit(conn, deal_id) or {}
+
     conn.close()
 
     # data для шаблона: алиасы парсера + % заполнения (порог КП)
@@ -426,6 +456,7 @@ def deal_detail(deal_id):
             if deal.get('extraction_source') in _EXTRACTION_SOURCES
             else _latest_extraction_source(timeline)
         ),
+        **audit,
     }
 
     field_rows = [
@@ -574,9 +605,11 @@ def edit_deal(deal_id):
         # Если менеджер дополнил транскрибацию — перепарсить.
         # Уже введённые поля уходят в overrides и не затираются.
         extraction_source = ''
+        _extracted = None
+        _source = ''
         if transcript and transcript != (deal['transcript'] or ''):
             try:
-                reparsed = _parse_transcript_for_crm(transcript, {
+                reparsed, _extracted, _source = _parse_transcript_for_crm(transcript, {
                     'client_name': client_name,
                     'client_phone': client_phone,
                     'client_email': client_email,
@@ -678,6 +711,25 @@ def edit_deal(deal_id):
                 ),
                 user_id=_actor_id(),
             )
+            # Аудит переразбора (только если транскрибация менялась успешно)
+            if _extracted is not None:
+                from extraction.validation.rules import validate
+                from extraction.validation.escalation import escalate
+                from extraction.scoring.lead_score import score as lead_score
+                from extraction.audit.logger import log_extraction
+
+                _validation = validate(_extracted)
+                _escalation = escalate(_extracted, _validation, raw_text=transcript)
+                _lead = lead_score(_extracted)
+                log_extraction(
+                    conn,
+                    deal_id=deal_id,
+                    extraction=_extracted,
+                    source=_source or extraction_source or 'regex',
+                    validation=_validation,
+                    escalation=_escalation,
+                    lead=_lead,
+                )
             if normalize_status(deal.get('status')) != new_status:
                 log_action(
                     conn,
