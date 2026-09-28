@@ -395,6 +395,9 @@ CRM вызывает её из `_parse_transcript_for_crm` (`web_app/routes_deal
 | `extraction/regex_fallback.py` | `parse_transcript_local` → `DealExtraction` |
 | `extraction/crm_adapter.py` | `to_crm_dict`: типы → строки CRM, приоритет overrides |
 | `extraction/prompts/extractor_v1.md` | system prompt: схема, enum, два примера |
+| `extraction/validation/rules.py` | бизнес-правила: `issues` ломают `ok`, `warnings` нет |
+| `extraction/validation/escalation.py` | `escalate()` → `EscalationDecision` или `None` |
+| `extraction/scoring/lead_score.py` | грейд лида A/B/C и разложение по факторам |
 
 ### Схема `DealExtraction`
 
@@ -410,6 +413,20 @@ CRM вызывает её из `_parse_transcript_for_crm` (`web_app/routes_deal
 Enum: `material` — газобетон / клееный брус / кирпич / каркас / не указано; `financing` — ипотека / наличные / маткапитал / рассрочка / не указано.
 
 Обязательные поля эталона (`required_filled`): `phone`, `email`, `plot`, `area_m2`, `material`, `start_date`, `financing`. `material` и `financing` считаются пустыми при значении `не указано`. `etalon_score()` — процент заполнения этих семи полей. В CRM `is_complete` — `etalon_score() >= 80`.
+
+### Валидация и эскалация
+
+`validate()` проверяет бюджет (минимум 3 млн ₽), площадь (50–500 м²), формат телефона (`+7` и 10 цифр) и email. Нарушение — `issues`, `ok = False`. Цена ниже 60 000 ₽/м² — только `warnings`.
+
+`escalate()` зовёт человека, если уверенность ниже 0.6, в возражениях юридический риск, провалилась валидация, либо sentiment негативный и `etalon_score` < 30. При `legal_risk` адресат — «юрист + руководитель ОП», иначе «руководитель ОП». Нет причин — `None`.
+
+Правило `negative_and_low_score` (sentiment=негативный и etalon_score < 30) в кейсе с судом не сработало: клиент заполнил телефон, площадь и материал — 43% эталона, выше порога. Эскалация сработала по другим причинам: low_confidence, legal_risk, validation_failed.
+
+### Lead scoring
+
+`score()` складывает факторы (бюджет от 3 млн, срок, участок, нет возражений, позитивный sentiment, клиент сам принимает решение) и ставит грейд: A ≥ 0.7, B ≥ 0.4, иначе C. `budget_rub` в эти семь полей эталона не входит.
+
+Фактор `no_objections` срабатывает только при `etalon_score > 0` — то есть когда заполнено хотя бы одно обязательное поле (телефон / email / участок / площадь / материал / срок / финансирование). Сделка «только с бюджетом» не получает бонус, потому что о клиенте толком ничего не известно.
 
 Промпт запрещает выдумывать факты: нет данных — `null`, пустой список или значение enum по умолчанию. `budget_rub` и `area_m2` — числа, бюджет в рублях.
 
