@@ -1,0 +1,8 @@
+{
+  "client": {"name": "Андрей", "phone": "+79625556677", "email": null, "telegram": null},
+  "object": {"plot": "9 соток", "area_m2": 120, "material": "кирпич", "floors": null, "style": null, "catalog_project": null},
+  "deal": {"budget_rub": 8000000, "financing": "рассрочка", "start_date": "апрель 2026", "urgency": null},
+  "sales_signals": {"objections": [], "tone": "спокойный", "sentiment": "нейтральный", "competitors_mentioned": [], "decision_maker": null},
+  "confidence": {"overall": 0.85, "per_field": {"phone": 0.99, "area_m2": 0.95, "budget_rub": 0.9}},
+  "missing_fields": ["email"]
+}

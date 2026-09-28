@@ -1,0 +1,8 @@
+{
+  "client": {"name": "Алексей", "phone": "+79254445566", "email": "alexey@mail.ru", "telegram": null},
+  "object": {"plot": "15 соток, Подмосковье", "area_m2": 180, "material": "клееный брус", "floors": 2, "style": null, "catalog_project": "Дом Форест"},
+  "deal": {"budget_rub": 12000000, "financing": "наличные", "start_date": "весна 2026", "urgency": "низкая"},
+  "sales_signals": {"objections": [], "tone": "спокойный", "sentiment": "позитивный", "competitors_mentioned": [], "decision_maker": true},
+  "confidence": {"overall": 0.95, "per_field": {"phone": 0.99, "email": 0.99, "area_m2": 0.95, "budget_rub": 0.9}},
+  "missing_fields": []
+}

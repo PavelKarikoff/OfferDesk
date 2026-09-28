@@ -1,0 +1,8 @@
+{
+  "client": {"name": "Ольга", "phone": "+79033334455", "email": "olga@mail.ru", "telegram": null},
+  "object": {"plot": "12 соток", "area_m2": 140, "material": "газобетон", "floors": null, "style": null, "catalog_project": null},
+  "deal": {"budget_rub": 9000000, "financing": "маткапитал", "start_date": "весна 2026", "urgency": null},
+  "sales_signals": {"objections": [], "tone": "спокойный", "sentiment": "позитивный", "competitors_mentioned": [], "decision_maker": null},
+  "confidence": {"overall": 0.9, "per_field": {"phone": 0.99, "email": 0.99, "area_m2": 0.95, "budget_rub": 0.85}},
+  "missing_fields": []
+}

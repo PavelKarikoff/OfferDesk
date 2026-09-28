@@ -1,0 +1,8 @@
+{
+  "client": {"name": "Елена", "phone": "+79037778899", "email": "elena@mail.ru", "telegram": null},
+  "object": {"plot": "13 соток", "area_m2": 150, "material": "кирпич", "floors": null, "style": null, "catalog_project": null},
+  "deal": {"budget_rub": 10000000, "financing": "наличные", "start_date": "сентябрь 2026", "urgency": null},
+  "sales_signals": {"objections": [], "tone": "спокойный", "sentiment": "нейтральный", "competitors_mentioned": [], "decision_maker": null},
+  "confidence": {"overall": 0.9, "per_field": {"phone": 0.99, "email": 0.99, "area_m2": 0.75, "budget_rub": 0.9}},
+  "missing_fields": []
+}
