@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import json
 import sqlite3
@@ -97,6 +98,19 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
+
+
+_EXTRACTION_SOURCES = frozenset({"llm", "regex", "merged"})
+_EXTRACTION_SOURCE_RE = re.compile(r"источник\s+(llm|regex|merged)\b")
+
+
+def _latest_extraction_source(timeline: list | None) -> str:
+    """Последний канал разбора из журнала, если колонка сделки ещё пустая."""
+    for item in timeline or []:
+        match = _EXTRACTION_SOURCE_RE.search((item or {}).get("detail") or "")
+        if match:
+            return match.group(1)
+    return ""
 
 
 def _parse_transcript_for_crm(transcript: str, overrides: dict | None = None) -> dict:
@@ -327,12 +341,14 @@ def new_deal():
             INSERT INTO deals (
                 client_name, client_phone, client_email, client_telegram,
                 transcript, notes, user_id, status,
-                plot, budget, area, material, timeline, funding_source, tk_cost, catalog_project
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                plot, budget, area, material, timeline, funding_source, tk_cost, catalog_project,
+                extraction_source
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             client_name, client_phone, client_email, client_telegram,
             transcript, notes, session['user_id'], initial_status,
-            plot, budget, area, material, timeline, funding_source, tk_cost, catalog_project
+            plot, budget, area, material, timeline, funding_source, tk_cost, catalog_project,
+            parsed_data.get('extraction_source') or '',
         ))
         deal_id = cursor.lastrowid
         log_action(
@@ -405,6 +421,11 @@ def deal_detail(deal_id):
         'completion_percent': deal.get('etalon_score', 0),
         'is_complete': deal.get('can_generate_kp', False),
         'missing_fields_names': deal.get('etalon_missing') or [],
+        'extraction_source': (
+            deal.get('extraction_source')
+            if deal.get('extraction_source') in _EXTRACTION_SOURCES
+            else _latest_extraction_source(timeline)
+        ),
     }
 
     field_rows = [
@@ -635,7 +656,7 @@ def edit_deal(deal_id):
                     client_name = ?, client_phone = ?, client_email = ?, client_telegram = ?,
                     transcript = ?, notes = ?, status = ?,
                     plot = ?, budget = ?, area = ?, material = ?, timeline = ?, funding_source = ?,
-                    tk_cost = ?, catalog_project = ?
+                    tk_cost = ?, catalog_project = ?, extraction_source = ?
                 WHERE id = ?
                 ''',
                 (
@@ -643,6 +664,7 @@ def edit_deal(deal_id):
                     transcript, notes, new_status,
                     plot, budget, area, material, timeline, funding_source,
                     tk_cost, catalog_project,
+                    extraction_source or (deal.get('extraction_source') or ''),
                     deal_id,
                 ),
             )
