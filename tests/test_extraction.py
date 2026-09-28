@@ -172,5 +172,50 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(r.confidence.overall, 0.2)
 
 
+class TestCrmAdapter(unittest.TestCase):
+    """CRM-словарь: числа → текст, пустой enum, приоритет overrides."""
+
+    def test_formats_budget_and_area(self):
+        from extraction.crm_adapter import to_crm_dict
+
+        extraction = DealExtraction.model_validate({
+            "client": {"name": "Иван", "phone": "+79990001122"},
+            "object": {"plot": "10 соток", "area_m2": 130, "material": "газобетон"},
+            "deal": {"budget_rub": 7_500_000, "financing": "наличные", "start_date": "август 2026"},
+        })
+        data = to_crm_dict(extraction, source="regex")
+        self.assertEqual(data["client_name"], "Иван")
+        self.assertEqual(data["budget"], "7.5 млн")
+        self.assertEqual(data["area"], "130")
+        self.assertEqual(data["material"], "газобетон")
+        self.assertEqual(data["funding_source"], "наличные")
+        self.assertEqual(data["timeline"], "август 2026")
+        self.assertEqual(data["extraction_source"], "regex")
+
+    def test_empty_enum_is_blank_for_etalon(self):
+        from extraction.crm_adapter import to_crm_dict
+
+        data = to_crm_dict(DealExtraction(), source="llm")
+        self.assertEqual(data["material"], "")
+        self.assertEqual(data["funding_source"], "")
+
+    def test_overrides_win_and_blank_does_not_wipe(self):
+        from extraction.crm_adapter import to_crm_dict
+
+        extraction = DealExtraction.model_validate({
+            "client": {"name": "Иван", "phone": "+79990001122"},
+            "object": {"area_m2": 130, "material": "кирпич"},
+        })
+        data = to_crm_dict(extraction, {
+            "client_name": "Мария",
+            "phone": "",
+            "area": "200 м²",
+        }, source="merged")
+        self.assertEqual(data["client_name"], "Мария")
+        self.assertEqual(data["client_phone"], "+79990001122")
+        self.assertEqual(data["area"], "200 м²")
+        self.assertEqual(data["material"], "кирпич")
+
+
 if __name__ == "__main__":
     unittest.main()

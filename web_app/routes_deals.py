@@ -18,8 +18,6 @@ from flask import (
 from functools import wraps
 from werkzeug.utils import secure_filename
 from file_parser import extract_text_from_file
-from transcript_parser_local import parse_transcript_local as parse_transcript
-from transcript_parser_local import validate_against_etalon
 from etalon_score import etalon_match_score, KP_THRESHOLD, FIELD_QUESTIONS, etalon_fields_for
 from db_utils import connect_db
 from pricing import apply_tk_cost, calc_tk_cost, is_timber_material
@@ -99,6 +97,15 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
+
+
+def _parse_transcript_for_crm(transcript: str, overrides: dict | None = None) -> dict:
+    """Пайплайн extraction → CRM-словарь. Эталон и статус считаются снаружи."""
+    from extraction.crm_adapter import to_crm_dict
+    from extraction.pipeline import extract
+
+    extracted, source = extract(transcript)
+    return to_crm_dict(extracted, overrides, source=source)
 
 
 def _missing_required_contacts(phone: str | None, email: str | None) -> list[str]:
@@ -281,13 +288,14 @@ def new_deal():
         notes = request.form.get('notes', '').strip()
 
         try:
-            validation = validate_against_etalon(transcript, overrides=overrides)
-            parsed_data = validation['parsed']
+            parsed_data = _parse_transcript_for_crm(transcript, overrides)
+            validation = etalon_match_score(parsed_data)
             logger.info(
-                "=== PARSED DATA ===\n%s\n=== ETALON %s%% missing=%s ===",
+                "=== PARSED DATA ===\n%s\n=== ETALON %s%% missing=%s source=%s ===",
                 json.dumps(parsed_data, indent=2, ensure_ascii=False),
                 validation['score'],
                 validation['missing'],
+                parsed_data.get('extraction_source'),
             )
         except Exception as e:
             logger.error(f"Ошибка парсинга/валидации: {e}")
@@ -331,7 +339,11 @@ def new_deal():
             conn,
             deal_id=deal_id,
             action='created',
-            detail=f'Статус: {status_label(initial_status)}; эталон {validation.get("score", 0)}%',
+            detail=(
+                f'Статус: {status_label(initial_status)}; '
+                f'эталон {validation.get("score", 0)}%; '
+                f'источник {parsed_data.get("extraction_source") or "—"}'
+            ),
             user_id=_actor_id(),
         )
         conn.commit()
@@ -538,21 +550,36 @@ def edit_deal(deal_id):
             or ''
         ).strip()
 
-        # Если менеджер дополнил транскрибацию — перепарсить и заполнить пустые поля
+        # Если менеджер дополнил транскрибацию — перепарсить.
+        # Уже введённые поля уходят в overrides и не затираются.
+        extraction_source = ''
         if transcript and transcript != (deal['transcript'] or ''):
             try:
-                reparsed = parse_transcript(transcript)
-                plot = plot or reparsed.get('plot') or ''
-                budget = budget or reparsed.get('budget') or ''
-                area = area or reparsed.get('area') or ''
-                material = material or reparsed.get('material') or ''
-                timeline = timeline or reparsed.get('timeline') or ''
-                funding_source = funding_source or reparsed.get('funding_source') or ''
-                catalog_project = catalog_project or reparsed.get('catalog_project') or ''
-                client_name = client_name or reparsed.get('client_name') or ''
-                client_phone = client_phone or reparsed.get('client_phone') or ''
-                client_email = client_email or reparsed.get('client_email') or ''
-                client_telegram = client_telegram or reparsed.get('client_telegram') or ''
+                reparsed = _parse_transcript_for_crm(transcript, {
+                    'client_name': client_name,
+                    'client_phone': client_phone,
+                    'client_email': client_email,
+                    'client_telegram': client_telegram,
+                    'plot': plot,
+                    'budget': budget,
+                    'area': area,
+                    'material': material,
+                    'timeline': timeline,
+                    'funding_source': funding_source,
+                    'catalog_project': catalog_project,
+                })
+                client_name = reparsed.get('client_name') or ''
+                client_phone = reparsed.get('client_phone') or ''
+                client_email = reparsed.get('client_email') or ''
+                client_telegram = reparsed.get('client_telegram') or ''
+                plot = reparsed.get('plot') or ''
+                budget = reparsed.get('budget') or ''
+                area = reparsed.get('area') or ''
+                material = reparsed.get('material') or ''
+                timeline = reparsed.get('timeline') or ''
+                funding_source = reparsed.get('funding_source') or ''
+                catalog_project = reparsed.get('catalog_project') or ''
+                extraction_source = reparsed.get('extraction_source') or ''
             except Exception as e:
                 logger.error(f"Ошибка перепарсинга при редактировании: {e}")
                 flash(f'Ошибка обновления данных транскрибации: {e}', 'warning')
@@ -623,7 +650,10 @@ def edit_deal(deal_id):
                 conn,
                 deal_id=deal_id,
                 action='updated',
-                detail=f'Эталон {match_preview["score"]}%; статус {status_label(new_status)}',
+                detail=(
+                    f'Эталон {match_preview["score"]}%; статус {status_label(new_status)}'
+                    + (f'; источник {extraction_source}' if extraction_source else '')
+                ),
                 user_id=_actor_id(),
             )
             if normalize_status(deal.get('status')) != new_status:
