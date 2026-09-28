@@ -110,6 +110,9 @@ def _to_float(value) -> float | None:
         return float(value)
 
     s = str(value).lower().replace(",", ".")
+    # Единицы площади — не числа: «м2», «м²», «кв.м», «кв м»
+    s = re.sub(r"м\s*[2²]", " ", s)
+    s = re.sub(r"кв\.?\s*м", " ", s)
 
     multiplier = 1.0
     if "млн" in s or "million" in s:
@@ -146,7 +149,7 @@ def _normalize_financing(value) -> str:
     if not value:
         return "не указано"
     s = str(value).lower()
-    if "ипотек" in s:
+    if "ипоте" in s:
         return "ипотека"
     if "мат" in s and "капит" in s:
         return "маткапитал"
