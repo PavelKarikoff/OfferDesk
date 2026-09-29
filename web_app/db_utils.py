@@ -18,7 +18,7 @@ DEAL_EXTRA_COLUMNS: tuple[tuple[str, str], ...] = (
     ("delivery_error", "TEXT"),
     ("telegram_chat_id", "TEXT"),  # числовой chat_id для отправки КП ботом
     ("telegram_outbox", "TEXT"),  # JSON очередь отправки КП (когда VPS не достучится до Telegram)
-    ("catalog_project", "TEXT"),  # типовой проект каталога «Дом Форест»
+    ("catalog_project", "TEXT"),  # типовой проект каталога клееного бруса
     ("extraction_source", "TEXT"),  # llm | regex | merged — канал разбора транскрибации
 )
 
