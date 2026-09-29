@@ -36,5 +36,37 @@ class OpenAIProxyConfigTests(unittest.TestCase):
             self.assertIn("127.0.0.1", os.environ.get("NO_PROXY", ""))
 
 
+class OpenAIClientTimeoutTests(unittest.TestCase):
+    """Зависший прокси не должен съедать ретраи SDK — иначе /ingest обрывается раньше fallback."""
+
+    def test_timeout_and_no_retries_without_proxy(self):
+        env = {"OPENAI_API_KEY": "sk-test", "OPENAI_TIMEOUT": "35"}
+        with patch.dict(os.environ, env, clear=True):
+            with patch("utils.ai_processor.OpenAI") as mock_cls:
+                from utils.ai_processor import get_openai_client
+
+                get_openai_client()
+        kwargs = mock_cls.call_args.kwargs
+        self.assertEqual(kwargs["timeout"], 35.0)
+        self.assertEqual(kwargs["max_retries"], 0)
+        self.assertNotIn("http_client", kwargs)
+
+    def test_timeout_and_no_retries_with_proxy(self):
+        env = {
+            "OPENAI_API_KEY": "sk-test",
+            "OPENAI_TIMEOUT": "35",
+            "OPENAI_PROXY": "http://proxy.example:8888",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            with patch("utils.ai_processor.OpenAI") as mock_cls:
+                from utils.ai_processor import get_openai_client
+
+                get_openai_client()
+        kwargs = mock_cls.call_args.kwargs
+        self.assertEqual(kwargs["timeout"], 35.0)
+        self.assertEqual(kwargs["max_retries"], 0)
+        self.assertIn("http_client", kwargs)
+
+
 if __name__ == "__main__":
     unittest.main()
