@@ -18,7 +18,7 @@ AI-квалификатор лидов для ИЖС: LLM-слой поверх 
 - `extraction/audit/` — `audit_log` и `get_last_audit` (deal_id, source, confidence, etalon_score, lead_grade, escalation).
 - Golden set (15 кейсов) + baseline regex, скрипты `run_golden_set.py` / `compare_runs.py`, отчёты в `reports/`.
 - Документация: `docs/ARCHITECTURE.md`, `docs/ROI.md`, `docs/OFFER.md`, `docs/KNOWN_ISSUES.md`.
-- 41 новый тест (итого 86).
+- +43 новых теста (итого 88 зелёных).
 
 ### Изменено
 
