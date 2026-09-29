@@ -1,0 +1,8 @@
+{
+  "client": {"name": "Дмитрий", "phone": "+79051112233", "email": "dmitry@mail.ru", "telegram": null},
+  "object": {"plot": "14 соток", "area_m2": 170, "material": "газобетон", "floors": null, "style": null, "catalog_project": null},
+  "deal": {"budget_rub": 11000000, "financing": "ипотека", "start_date": "лето 2026", "urgency": null},
+  "sales_signals": {"objections": [], "tone": "спокойный", "sentiment": "нейтральный", "competitors_mentioned": ["СтройДом", "ИЖС-Мастер"], "decision_maker": true},
+  "confidence": {"overall": 0.9, "per_field": {"phone": 0.99, "email": 0.99, "area_m2": 0.95, "budget_rub": 0.85}},
+  "missing_fields": []
+}

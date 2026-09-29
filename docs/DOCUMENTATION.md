@@ -3,7 +3,7 @@
 **Продукт:** OfferDesk — рабочее место менеджера ОП «Дом-Мастер»  
 **Назначение:** из транскрибации звонка за минуты собрать КП (CRM / Telegram / API)  
 **Стек:** Python 3.11+, aiogram 3, OpenAI, Jinja2, WeasyPrint, Flask/Waitress CRM  
-**Дата актуализации:** 2026-08-14
+**Дата актуализации:** 2026-09-28
 
 ---
 
@@ -18,13 +18,14 @@
 7. [CLI (`main.py`)](#7-cli-mainpy)
 8. [HTTP API (`flask_app.py`)](#8-http-api-flask_appy)
 9. [Архитектура и модули](#9-архитектура-и-модули)
-10. [Типы документов и цены](#10-типы-документов-и-цены)
-11. [Безопасность](#11-безопасность)
-12. [Логи и артефакты](#12-логи-и-артефакты)
-13. [Разработка и расширение](#13-разработка-и-расширение)
-14. [Известные ограничения](#14-известные-ограничения)
-15. [Связанные файлы](#15-связанные-файлы)
-16. [OfferDesk CRM и production](#16-offerdesk-crm-и-production)
+10. [Извлечение сделки (`extraction/`)](#10-извлечение-сделки-extraction)
+11. [Типы документов и цены](#11-типы-документов-и-цены)
+12. [Безопасность](#12-безопасность)
+13. [Логи и артефакты](#13-логи-и-артефакты)
+14. [Разработка и расширение](#14-разработка-и-расширение)
+15. [Известные ограничения](#15-известные-ограничения)
+16. [Связанные файлы](#16-связанные-файлы)
+17. [OfferDesk CRM и production](#17-offerdesk-crm-и-production)
 
 **Отдельные документы:**
 
@@ -349,12 +350,109 @@ bot.py / main.py / flask_app.py
 | `utils/config.py` | env, типы отчётов, allowlist, sanitize |
 | `utils/money.py` | форматирование сумм |
 | `utils/logging_setup.py` | консоль + `logs/bot.log` |
+| `extraction/` | разбор транскрибации в карточку сделки для CRM — [§10](#10-извлечение-сделки-extraction) |
 
 Шаблоны PDF: `templates/*.html` (Jinja2, autoescape включён).
 
+Карточку сделки из транскрибации собирает CRM: `web_app/routes_deals.py` → `extract()` → `to_crm_dict()`.
+
 ---
 
-## 10. Типы документов и цены
+## 10. Извлечение сделки (`extraction/`)
+
+Пакет `extraction/` превращает текст транскрибации в типизированную карточку `DealExtraction` и затем в словарь CRM. Точка входа — `extract(transcript) -> (DealExtraction, source)`.
+
+CRM вызывает её из `_parse_transcript_for_crm` (`web_app/routes_deals.py`): `extract` → `to_crm_dict`. Эталон и статус сделки считаются снаружи (`web_app/etalon_score.py`).
+
+### Стратегия
+
+```text
+транскрибация
+    → LLM (prompts/extractor_v1.md + utils.chat_json)
+         │ ошибка / пустой ключ / невалидный JSON → regex, source=regex
+         │ confidence.overall ≥ 0.5 → source=llm
+         │ иначе пустые поля LLM добираются из regex → source=merged
+    → to_crm_dict (+ overrides формы менеджера)
+```
+
+| `source` | Когда |
+|----------|--------|
+| `llm` | модель ответила и `confidence.overall` ≥ `0.5` |
+| `regex` | `force_regex=True`, либо LLM упал (сеть, таймаут, JSON, валидация) |
+| `merged` | LLM ниже порога: заполненные поля остаются от LLM, пустые берутся из regex |
+
+Порог — `MIN_CONFIDENCE = 0.5` в `extraction/pipeline.py`. У regex `confidence.overall` всегда `0.3`: это метка канала, не оценка качества. Пустая транскрибация — `ValueError`.
+
+При merge пустым считается `None`, `""`, `"не указано"`, `[]`, `{}`. `sales_signals` и `confidence` остаются от LLM. `missing_fields` пересчитываются после merge.
+
+### Модули
+
+| Файл | Назначение |
+|------|------------|
+| `extraction/pipeline.py` | `extract()`, порог confidence, merge |
+| `extraction/schema.py` | Pydantic-схема `DealExtraction` |
+| `extraction/llm_extractor.py` | промпт + `chat_json` + валидация; ошибки пробрасывает в pipeline |
+| `extraction/regex_fallback.py` | `parse_transcript_local` → `DealExtraction` |
+| `extraction/crm_adapter.py` | `to_crm_dict`: типы → строки CRM, приоритет overrides |
+| `extraction/prompts/extractor_v1.md` | system prompt: схема, enum, два примера |
+| `extraction/validation/rules.py` | бизнес-правила: `issues` ломают `ok`, `warnings` нет |
+| `extraction/validation/escalation.py` | `escalate()` → `EscalationDecision` или `None` |
+| `extraction/scoring/lead_score.py` | грейд лида A/B/C и разложение по факторам |
+
+### Схема `DealExtraction`
+
+| Блок | Поля |
+|------|------|
+| `client` | `name`, `phone`, `email`, `telegram` |
+| `object` | `plot`, `area_m2`, `material`, `floors`, `style`, `catalog_project` |
+| `deal` | `budget_rub`, `financing`, `start_date`, `urgency` |
+| `sales_signals` | `objections`, `tone`, `sentiment`, `competitors_mentioned`, `decision_maker` |
+| `confidence` | `overall` (0…1), `per_field` |
+| `missing_fields` | ключи эталона, которых нет |
+
+Enum: `material` — газобетон / клееный брус / кирпич / каркас / не указано; `financing` — ипотека / наличные / маткапитал / рассрочка / не указано.
+
+Обязательные поля эталона (`required_filled`): `phone`, `email`, `plot`, `area_m2`, `material`, `start_date`, `financing`. `material` и `financing` считаются пустыми при значении `не указано`. `etalon_score()` — процент заполнения этих семи полей. В CRM `is_complete` — `etalon_score() >= 80`.
+
+### Валидация и эскалация
+
+`validate()` проверяет бюджет (минимум 3 млн ₽), площадь (50–500 м²), формат телефона (`+7` и 10 цифр) и email. Нарушение — `issues`, `ok = False`. Цена ниже 60 000 ₽/м² — только `warnings`.
+
+`escalate()` зовёт человека, если уверенность ниже 0.6, в возражениях юридический риск, провалилась валидация, либо sentiment негативный и `etalon_score` < 30. При `legal_risk` адресат — «юрист + руководитель ОП», иначе «руководитель ОП». Нет причин — `None`.
+
+Правило `negative_and_low_score` (sentiment=негативный и etalon_score < 30) в кейсе с судом не сработало: клиент заполнил телефон, площадь и материал — 43% эталона, выше порога. Эскалация сработала по другим причинам: low_confidence, legal_risk, validation_failed.
+
+### Lead scoring
+
+`score()` складывает факторы (бюджет от 3 млн, срок, участок, нет возражений, позитивный sentiment, клиент сам принимает решение) и ставит грейд: A ≥ 0.7, B ≥ 0.4, иначе C. `budget_rub` в эти семь полей эталона не входит.
+
+Фактор `no_objections` срабатывает только при `etalon_score > 0` — то есть когда заполнено хотя бы одно обязательное поле (телефон / email / участок / площадь / материал / срок / финансирование). Сделка «только с бюджетом» не получает бонус, потому что о клиенте толком ничего не известно.
+
+Промпт запрещает выдумывать факты: нет данных — `null`, пустой список или значение enum по умолчанию. `budget_rub` и `area_m2` — числа, бюджет в рублях.
+
+### Словарь CRM
+
+`to_crm_dict(extraction, overrides, source)` отдаёт строковые ключи, которые ждёт форма сделки:
+
+| `DealExtraction` | ключ CRM |
+|------------------|----------|
+| `client.name` / `phone` / `email` / `telegram` | `client_name`, `client_phone`, `client_email`, `client_telegram` |
+| `object.plot`, `area_m2`, `material`, `catalog_project` | `plot`, `area`, `material`, `catalog_project` |
+| `deal.budget_rub`, `start_date`, `financing` | `budget`, `timeline`, `funding_source` |
+
+Числа форматируются обратно в текст: `130.0` → `130`, `7_500_000` → `7.5 млн`, `500_000` → `500 тыс`. Значение enum `не указано` становится `""`, чтобы эталон не засчитал заглушку как заполненное поле. Непустые `overrides` из формы менеджера перекрывают extract. В словарь также попадают `completion_percent`, `missing_fields`, `is_complete`, `extraction_source`.
+
+Regex-слой мапит свободный текст старого парсера (`client_name`, `budget`, `timeline`, …) в enum и числа. Диапазон усредняется: `120-140 м2` → `130`, `7-8 млн` → `7_500_000`. Известное ограничение парсера, не маппера: из `6.5 млн` локальный regex может вернуть `5 млн` — дробная часть теряется до конвертации в число.
+
+### Проверка
+
+```bash
+python3 -m unittest tests.test_extraction -v
+```
+
+---
+
+## 11. Типы документов и цены
 
 | Документ | Содержание |
 |----------|------------|
@@ -385,7 +483,7 @@ bot.py / main.py / flask_app.py
 
 ---
 
-## 11. Безопасность
+## 12. Безопасность
 
 1. Не коммитьте `.env` и живые ключи.
 2. Задайте `TELEGRAM_ALLOWED_IDS` перед публичным использованием бота.
@@ -399,7 +497,7 @@ bot.py / main.py / flask_app.py
 
 ---
 
-## 12. Логи и артефакты
+## 13. Логи и артефакты
 
 | Путь | Содержимое |
 |------|------------|
@@ -413,7 +511,7 @@ bot.py / main.py / flask_app.py
 
 ---
 
-## 13. Разработка и расширение
+## 14. Разработка и расширение
 
 ### Добавить позицию в смету КП
 
@@ -440,7 +538,7 @@ python main.py --kp --no-open
 
 ---
 
-## 14. Известные ограничения
+## 15. Известные ограничения
 
 | Ограничение | Комментарий |
 |-------------|-------------|
@@ -450,10 +548,11 @@ python main.py --kp --no-open
 | Combine | 3 страницы КП пересобираются; АР/ИР переиспользуются из пакета |
 | Стоимость API | АР с картинками заметно дороже текстовых вызовов |
 | Сеть VPS РФ | OpenAI — через NL-прокси; Telegram — пин DC в `/etc/hosts` |
+| Regex-бюджет | Локальный парсер из «6.5 млн» может отдать «5 млн»; дробная часть теряется до маппера `extraction/` |
 
 ---
 
-## 15. Связанные файлы
+## 16. Связанные файлы
 
 | Файл | Описание |
 |------|----------|
@@ -471,7 +570,7 @@ python main.py --kp --no-open
 
 ---
 
-## 16. OfferDesk CRM и production
+## 17. OfferDesk CRM и production
 
 Веб-CRM OfferDesk (`web_app/`): сделки, эталон заполнения, генерация/утверждение/отправка КП, дашборд, справка `/help`.
 
@@ -479,6 +578,7 @@ python main.py --kp --no-open
 |-----|-----|
 | Entry | `web_app/app.py` (Waitress `:5001`) |
 | Сделки | `web_app/routes_deals.py` |
+| Разбор транскрибации | `extraction/` — [§10](#10-извлечение-сделки-extraction) |
 | Эталон % | `web_app/etalon_score.py` |
 | Systemd | `deploy/systemd/dommaster-*.service` |
 | Деплой | `scripts/update_server.sh` |

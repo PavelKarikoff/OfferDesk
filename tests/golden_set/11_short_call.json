@@ -1,0 +1,8 @@
+{
+  "client": {"name": "Николай", "phone": "+79160001122", "email": null, "telegram": null},
+  "object": {"plot": null, "area_m2": null, "material": "не указано", "floors": null, "style": null, "catalog_project": null},
+  "deal": {"budget_rub": null, "financing": "не указано", "start_date": null, "urgency": null},
+  "sales_signals": {"objections": [], "tone": "не определён", "sentiment": "нейтральный", "competitors_mentioned": [], "decision_maker": null},
+  "confidence": {"overall": 0.15, "per_field": {"phone": 0.99, "name": 0.95}},
+  "missing_fields": ["email", "plot", "area_m2", "material", "start_date", "financing"]
+}

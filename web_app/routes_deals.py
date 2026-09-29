@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import json
 import sqlite3
@@ -18,8 +19,6 @@ from flask import (
 from functools import wraps
 from werkzeug.utils import secure_filename
 from file_parser import extract_text_from_file
-from transcript_parser_local import parse_transcript_local as parse_transcript
-from transcript_parser_local import validate_against_etalon
 from etalon_score import etalon_match_score, KP_THRESHOLD, FIELD_QUESTIONS, etalon_fields_for
 from db_utils import connect_db
 from pricing import apply_tk_cost, calc_tk_cost, is_timber_material
@@ -99,6 +98,32 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
+
+
+_EXTRACTION_SOURCES = frozenset({"llm", "regex", "merged"})
+_EXTRACTION_SOURCE_RE = re.compile(r"источник\s+(llm|regex|merged)\b")
+
+
+def _latest_extraction_source(timeline: list | None) -> str:
+    """Последний канал разбора из журнала, если колонка сделки ещё пустая."""
+    for item in timeline or []:
+        match = _EXTRACTION_SOURCE_RE.search((item or {}).get("detail") or "")
+        if match:
+            return match.group(1)
+    return ""
+
+
+def _parse_transcript_for_crm(transcript: str, overrides: dict | None = None) -> tuple[dict, object, str]:
+    """Пайплайн extraction → (CRM-словарь, DealExtraction, source).
+
+    Эталон и статус считаются снаружи. extracted и source нужны для
+    валидации, эскалации, lead scoring и аудита.
+    """
+    from extraction.crm_adapter import to_crm_dict
+    from extraction.pipeline import extract
+
+    extracted, source = extract(transcript)
+    return to_crm_dict(extracted, overrides, source=source), extracted, source
 
 
 def _missing_required_contacts(phone: str | None, email: str | None) -> list[str]:
@@ -280,14 +305,17 @@ def new_deal():
         }
         notes = request.form.get('notes', '').strip()
 
+        extracted = None
+        source = ""
         try:
-            validation = validate_against_etalon(transcript, overrides=overrides)
-            parsed_data = validation['parsed']
+            parsed_data, extracted, source = _parse_transcript_for_crm(transcript, overrides)
+            validation = etalon_match_score(parsed_data)
             logger.info(
-                "=== PARSED DATA ===\n%s\n=== ETALON %s%% missing=%s ===",
+                "=== PARSED DATA ===\n%s\n=== ETALON %s%% missing=%s source=%s ===",
                 json.dumps(parsed_data, indent=2, ensure_ascii=False),
                 validation['score'],
                 validation['missing'],
+                parsed_data.get('extraction_source'),
             )
         except Exception as e:
             logger.error(f"Ошибка парсинга/валидации: {e}")
@@ -319,21 +347,46 @@ def new_deal():
             INSERT INTO deals (
                 client_name, client_phone, client_email, client_telegram,
                 transcript, notes, user_id, status,
-                plot, budget, area, material, timeline, funding_source, tk_cost, catalog_project
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                plot, budget, area, material, timeline, funding_source, tk_cost, catalog_project,
+                extraction_source
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             client_name, client_phone, client_email, client_telegram,
             transcript, notes, session['user_id'], initial_status,
-            plot, budget, area, material, timeline, funding_source, tk_cost, catalog_project
+            plot, budget, area, material, timeline, funding_source, tk_cost, catalog_project,
+            parsed_data.get('extraction_source') or '',
         ))
         deal_id = cursor.lastrowid
         log_action(
             conn,
             deal_id=deal_id,
             action='created',
-            detail=f'Статус: {status_label(initial_status)}; эталон {validation.get("score", 0)}%',
+            detail=(
+                f'Статус: {status_label(initial_status)}; '
+                f'эталон {validation.get("score", 0)}%; '
+                f'источник {parsed_data.get("extraction_source") or "—"}'
+            ),
             user_id=_actor_id(),
         )
+        # Аудит + контроль качества (только если парсер отработал)
+        if extracted is not None:
+            from extraction.validation.rules import validate
+            from extraction.validation.escalation import escalate
+            from extraction.scoring.lead_score import score as lead_score
+            from extraction.audit.logger import log_extraction
+
+            _validation = validate(extracted)
+            _escalation = escalate(extracted, _validation, raw_text=transcript)
+            _lead = lead_score(extracted)
+            log_extraction(
+                conn,
+                deal_id=deal_id,
+                extraction=extracted,
+                source=source,
+                validation=_validation,
+                escalation=_escalation,
+                lead=_lead,
+            )
         conn.commit()
         conn.close()
 
@@ -376,6 +429,11 @@ def deal_detail(deal_id):
 
     deal = _deal_with_etalon(row)
     timeline = list_actions(conn, deal_id, limit=80)
+
+    # Аудит — до закрытия соединения
+    from extraction.audit.logger import get_last_audit
+    audit = get_last_audit(conn, deal_id) or {}
+
     conn.close()
 
     # data для шаблона: алиасы парсера + % заполнения (порог КП)
@@ -393,6 +451,12 @@ def deal_detail(deal_id):
         'completion_percent': deal.get('etalon_score', 0),
         'is_complete': deal.get('can_generate_kp', False),
         'missing_fields_names': deal.get('etalon_missing') or [],
+        'extraction_source': (
+            deal.get('extraction_source')
+            if deal.get('extraction_source') in _EXTRACTION_SOURCES
+            else _latest_extraction_source(timeline)
+        ),
+        **audit,
     }
 
     field_rows = [
@@ -538,21 +602,38 @@ def edit_deal(deal_id):
             or ''
         ).strip()
 
-        # Если менеджер дополнил транскрибацию — перепарсить и заполнить пустые поля
+        # Если менеджер дополнил транскрибацию — перепарсить.
+        # Уже введённые поля уходят в overrides и не затираются.
+        extraction_source = ''
+        _extracted = None
+        _source = ''
         if transcript and transcript != (deal['transcript'] or ''):
             try:
-                reparsed = parse_transcript(transcript)
-                plot = plot or reparsed.get('plot') or ''
-                budget = budget or reparsed.get('budget') or ''
-                area = area or reparsed.get('area') or ''
-                material = material or reparsed.get('material') or ''
-                timeline = timeline or reparsed.get('timeline') or ''
-                funding_source = funding_source or reparsed.get('funding_source') or ''
-                catalog_project = catalog_project or reparsed.get('catalog_project') or ''
-                client_name = client_name or reparsed.get('client_name') or ''
-                client_phone = client_phone or reparsed.get('client_phone') or ''
-                client_email = client_email or reparsed.get('client_email') or ''
-                client_telegram = client_telegram or reparsed.get('client_telegram') or ''
+                reparsed, _extracted, _source = _parse_transcript_for_crm(transcript, {
+                    'client_name': client_name,
+                    'client_phone': client_phone,
+                    'client_email': client_email,
+                    'client_telegram': client_telegram,
+                    'plot': plot,
+                    'budget': budget,
+                    'area': area,
+                    'material': material,
+                    'timeline': timeline,
+                    'funding_source': funding_source,
+                    'catalog_project': catalog_project,
+                })
+                client_name = reparsed.get('client_name') or ''
+                client_phone = reparsed.get('client_phone') or ''
+                client_email = reparsed.get('client_email') or ''
+                client_telegram = reparsed.get('client_telegram') or ''
+                plot = reparsed.get('plot') or ''
+                budget = reparsed.get('budget') or ''
+                area = reparsed.get('area') or ''
+                material = reparsed.get('material') or ''
+                timeline = reparsed.get('timeline') or ''
+                funding_source = reparsed.get('funding_source') or ''
+                catalog_project = reparsed.get('catalog_project') or ''
+                extraction_source = reparsed.get('extraction_source') or ''
             except Exception as e:
                 logger.error(f"Ошибка перепарсинга при редактировании: {e}")
                 flash(f'Ошибка обновления данных транскрибации: {e}', 'warning')
@@ -608,7 +689,7 @@ def edit_deal(deal_id):
                     client_name = ?, client_phone = ?, client_email = ?, client_telegram = ?,
                     transcript = ?, notes = ?, status = ?,
                     plot = ?, budget = ?, area = ?, material = ?, timeline = ?, funding_source = ?,
-                    tk_cost = ?, catalog_project = ?
+                    tk_cost = ?, catalog_project = ?, extraction_source = ?
                 WHERE id = ?
                 ''',
                 (
@@ -616,6 +697,7 @@ def edit_deal(deal_id):
                     transcript, notes, new_status,
                     plot, budget, area, material, timeline, funding_source,
                     tk_cost, catalog_project,
+                    extraction_source or (deal.get('extraction_source') or ''),
                     deal_id,
                 ),
             )
@@ -623,9 +705,31 @@ def edit_deal(deal_id):
                 conn,
                 deal_id=deal_id,
                 action='updated',
-                detail=f'Эталон {match_preview["score"]}%; статус {status_label(new_status)}',
+                detail=(
+                    f'Эталон {match_preview["score"]}%; статус {status_label(new_status)}'
+                    + (f'; источник {extraction_source}' if extraction_source else '')
+                ),
                 user_id=_actor_id(),
             )
+            # Аудит переразбора (только если транскрибация менялась успешно)
+            if _extracted is not None:
+                from extraction.validation.rules import validate
+                from extraction.validation.escalation import escalate
+                from extraction.scoring.lead_score import score as lead_score
+                from extraction.audit.logger import log_extraction
+
+                _validation = validate(_extracted)
+                _escalation = escalate(_extracted, _validation, raw_text=transcript)
+                _lead = lead_score(_extracted)
+                log_extraction(
+                    conn,
+                    deal_id=deal_id,
+                    extraction=_extracted,
+                    source=_source or extraction_source or 'regex',
+                    validation=_validation,
+                    escalation=_escalation,
+                    lead=_lead,
+                )
             if normalize_status(deal.get('status')) != new_status:
                 log_action(
                     conn,

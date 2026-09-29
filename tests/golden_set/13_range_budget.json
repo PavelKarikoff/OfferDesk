@@ -1,0 +1,8 @@
+{
+  "client": {"name": "Павел", "phone": "+79991234567", "email": "pavel@example.com", "telegram": null},
+  "object": {"plot": "11 соток", "area_m2": 160, "material": "газобетон", "floors": 1, "style": null, "catalog_project": null},
+  "deal": {"budget_rub": 9000000, "financing": "ипотека", "start_date": "август 2026", "urgency": null},
+  "sales_signals": {"objections": [], "tone": "спокойный", "sentiment": "нейтральный", "competitors_mentioned": [], "decision_maker": null},
+  "confidence": {"overall": 0.9, "per_field": {"phone": 0.99, "email": 0.99, "area_m2": 0.95, "budget_rub": 0.75}},
+  "missing_fields": []
+}

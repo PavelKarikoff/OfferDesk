@@ -13,6 +13,7 @@
 Прод: [http://194.67.103.144:5001](http://194.67.103.144:5001) · health: `GET /health`
 
 📚 **Документация:** [`docs/DOCUMENTATION.md`](docs/DOCUMENTATION.md)  
+🎯 **Оффер для фриланса:** `docs/OFFER.md`  
 👥 **Для менеджеров ОП:** [`docs/РУКОВОДСТВО_МЕНЕДЖЕРА.md`](docs/РУКОВОДСТВО_МЕНЕДЖЕРА.md)  
 🛠️ **Ops / VPS:** [`docs/OPS_CRM.md`](docs/OPS_CRM.md)  
 📡 **OpenAPI 3.1:** [`docs/openapi.yaml`](docs/openapi.yaml)  
@@ -108,6 +109,42 @@
 
 ---
 
+
+### Качество извлечения (golden set)
+
+15 синтетических транскрибаций с эталонными JSON — `tests/golden_set/`.
+
+**Baseline regex** (проверено, `python3 scripts/run_golden_set.py --force-regex`):
+
+| Поле | Precision | Recall | F1 |
+|---|---|---|---|
+| phone | 1.00 | 1.00 | 1.00 |
+| email | 1.00 | 1.00 | 1.00 |
+| plot | 0.91 | 1.00 | 0.95 |
+| material | 1.00 | 1.00 | 1.00 |
+| area_m2 | 0.70 | 0.54 | 0.61 |
+| financing | 1.00 | 0.50 | 0.67 |
+| start_date | 0.60 | 0.30 | 0.40 |
+| budget_rub | 0.00 | 0.00 | 0.00 |
+
+Exact `etalon_score`: 8/15 (53.3%).
+
+**Что это значит:** regex надёжен на телефоне, почте, материале, участке.
+Теряет бюджет (0.00 recall), срок старта (0.30), финансирование (0.50)
+и площадь (0.54). Закрытие этих полей — задача LLM-слоя с structured
+output и few-shot (промпт v2 готов, `extraction/prompts/extractor_v2.md`).
+
+### Окупаемость
+
+При чеке 8 млн ₽ и марже 15% внедрение окупается **от 1 недели до 1 месяца**:
+- высвобождение времени менеджеров: ~83 ч/мес (5 менеджеров × 20 КП × 50 мин);
+- рост конверсии в замер на 10–15%: +1–2 сделки/мес.
+
+Затраты: OpenAI API ~15–30 ₽/сделка, VPS ~700 ₽/мес,
+подписка 30–50 тыс. ₽/мес.
+
+Полный расчёт и ограничения — в [`docs/ROI.md`](docs/ROI.md).
+
 ## Стек
 
 | Слой | Технологии |
@@ -120,6 +157,10 @@
 | Шрифты кириллицы | DejaVu Sans (`fonts/`) |
 | HTTP API (генерация) | Flask (`flask_app.py`) или Go (`go_server/`) |
 | Контейнеры | Docker, Docker Compose, образы на Docker Hub |
+| LLM-извлечение | `extraction/` (Pydantic + `utils.chat_json` + regex-fallback) |
+| Валидация / эскалация | `extraction/validation/` |
+| Lead scoring | `extraction/scoring/lead_score.py` |
+| Аудит | `extraction/audit/logger.py` → `audit_log` (SQLite) |
 
 Зависимости: [`requirements.txt`](requirements.txt) (диапазоны) и [`requirements.lock.txt`](requirements.lock.txt) (зафиксированные версии).
 
@@ -306,6 +347,19 @@ BASE_URL=http://127.0.0.1:5002 ./scripts/check_endpoints.sh --quick
 Скриншоты интерфейса CRM и документов — в [`docs/screenshots/`](docs/screenshots/).
 
 ---
+
+### Архитектура
+
+Полная схема процесса, таблица слоёв `extraction/`, контур отказа —
+в [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+Кратко: транскрибация → `extract()` → `llm`/`regex`/`merged` →
+`DealExtraction` → валидация + эскалация + lead scoring → CRM-словарь
+→ `audit_log`.
+
+Контур отказа: при недоступности LLM автоматически включается
+regex-fallback. Проверено вживую (прокси OpenAI недоступен —
+53.3% exact etalon_score).
 
 ## Возможное развитие
 

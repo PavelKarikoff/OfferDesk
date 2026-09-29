@@ -1,0 +1,8 @@
+{
+  "client": {"name": null, "phone": "+79178889900", "email": null, "telegram": null},
+  "object": {"plot": null, "area_m2": 130, "material": "газобетон", "floors": null, "style": null, "catalog_project": null},
+  "deal": {"budget_rub": 7000000, "financing": "наличные", "start_date": null, "urgency": null},
+  "sales_signals": {"objections": ["конкуренты предложили дешевле"], "tone": "сомневающийся", "sentiment": "нейтральный", "competitors_mentioned": ["другой подрядчик"], "decision_maker": null},
+  "confidence": {"overall": 0.6, "per_field": {"phone": 0.99, "area_m2": 0.95, "budget_rub": 0.85}},
+  "missing_fields": ["name", "email", "plot", "start_date"]
+}

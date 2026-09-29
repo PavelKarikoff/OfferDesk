@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import sqlite3
 
+from extraction.audit.logger import ensure_table as ensure_audit_table
+
 DEAL_EXTRA_COLUMNS: tuple[tuple[str, str], ...] = (
     ("budget", "TEXT"),
     ("area", "TEXT"),
@@ -17,6 +19,7 @@ DEAL_EXTRA_COLUMNS: tuple[tuple[str, str], ...] = (
     ("telegram_chat_id", "TEXT"),  # числовой chat_id для отправки КП ботом
     ("telegram_outbox", "TEXT"),  # JSON очередь отправки КП (когда VPS не достучится до Telegram)
     ("catalog_project", "TEXT"),  # типовой проект каталога «Дом Форест»
+    ("extraction_source", "TEXT"),  # llm | regex | merged — канал разбора транскрибации
 )
 
 
@@ -53,6 +56,8 @@ def ensure_deal_columns(conn: sqlite3.Connection) -> None:
         migrate_deal_statuses(conn)
     except Exception:
         pass
+
+    ensure_audit_table(conn)
 
 
 def connect_db(path: str = "deals.db") -> sqlite3.Connection:

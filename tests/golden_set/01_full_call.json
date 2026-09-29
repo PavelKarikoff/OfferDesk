@@ -1,0 +1,8 @@
+{
+  "client": {"name": "Сергей", "phone": "+79161234567", "email": "sergey@example.com", "telegram": "@sergey_izhs"},
+  "object": {"plot": "12 соток, Московская область", "area_m2": 150, "material": "газобетон", "floors": 1, "style": null, "catalog_project": null},
+  "deal": {"budget_rub": 9000000, "financing": "ипотека", "start_date": "ноябрь 2026", "urgency": "средняя"},
+  "sales_signals": {"objections": ["боится срыва сроков", "сравнивает подрядчиков"], "tone": "сомневающийся", "sentiment": "нейтральный", "competitors_mentioned": ["два других подрядчика"], "decision_maker": true},
+  "confidence": {"overall": 0.95, "per_field": {"phone": 0.99, "email": 0.99, "area_m2": 0.95, "budget_rub": 0.85}},
+  "missing_fields": []
+}
