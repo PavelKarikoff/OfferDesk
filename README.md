@@ -74,7 +74,7 @@
 |---|---|---|
 | Сделка в CRM | карточка в OfferDesk, `lead_grade` A/B/C, `extraction_source` | amoCRM / Bitrix24, тег квалификации |
 | Эскалация | бейдж + `audit_log` → юрист и/или руководитель ОП | задача в внешней CRM |
-| Ответ клиенту | email (SMTP); Telegram — канал КП | WhatsApp, автоответ с сайта |
+| Ответ клиенту | email (SMTP); Telegram — канал КП | WhatsApp; черновик LLM при temperature 0.7 |
 | Задача менеджеру | уведомление + напоминание, если сделка стоит > 3 дней | постановка задачи в amo/Bitrix |
 | КП | PDF по эталону, если полей ≥ 80% | без изменений контура |
 
@@ -266,20 +266,46 @@ curl -X POST http://127.0.0.1:5001/ingest \
      }'
 ```
 
-Пример ответа:
+#### Формат ответа
+
+`POST /ingest` возвращает два блока: CRM-проекцию (поля сделки) и
+формальный inbox-контракт `action`:
 
 ```json
 {
   "source": "regex",
   "etalon_score": 71,
   "lead_grade": "C",
-  "lead_score": 0.3,
-  "validation": {"ok": true, "issues": [], "warnings": []},
-  "escalation": null,
-  "extraction": { "...": "DealExtraction" },
-  "crm": { "...": "CRM-словарь" }
+  "crm": {...},
+
+  "action": {
+    "intent": "qualify",
+    "summary": "Лид C. Сергей, 150 м², газобетон",
+    "priority": "medium",
+    "next_action": "Дозаполнить поля (budget_rub, start_date), затем КП",
+    "fields": {...},
+    "confidence": "low",
+    "escalate": false,
+    "meta": {
+      "source": "regex",
+      "etalon_score": 71,
+      "lead_grade": "C",
+      "lead_score": 0.3,
+      "reasons": []
+    }
+  }
 }
 ```
+
+Поля `action`:
+
+- `intent` — `quote_request` / `qualify` / `escalate` / `reject`
+- `priority` — `low` / `medium` / `high`
+- `confidence` — `high` / `medium` / `low` (enum, не число)
+- `escalate` — `true` / `false`
+- `next_action` — конкретное действие для менеджера
+
+`priority` и `escalate` решает код, а не LLM. Модель не может «замолчать» юридический риск или провал валидации. Старые поля ответа (`source`, `extraction`, `crm`, scoring) сохранены.
 
 При заданном `FLASK_API_TOKEN` требуется заголовок `X-Api-Token`. Если токен в `.env` не задан, заголовок не нужен (только для локальной разработки). Сделка в CRM не создаётся.
 
@@ -349,6 +375,7 @@ BASE_URL=http://127.0.0.1:5001 ./scripts/check_endpoints.sh --quick
 2. WhatsApp и автоответ с сайта / Авито.
 3. Актуальные прайсы из 1С.
 4. Дашборд точности извлечения (precision/recall в реальном времени).
+5. Черновик ответа клиенту отдельным вызовом LLM с `temperature=0.7`. Сейчас `utils.chat_json` фиксирован на `0.2` — это безопаснее для извлечения; креативный шаг потребует `chat_json(..., temperature=...)`. Фиктивный второй шаг при 0.2 на защиту не выносим.
 
 ---
 
