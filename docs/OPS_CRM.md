@@ -190,7 +190,7 @@ curl -x "$OPENAI_PROXY" -H 'Authorization: Bearer sk-test' \
 |-------|------|------|------------|
 | GET | `/health` | нет | liveness |
 | GET | `/health?deep=1` | нет | db + proxy flag |
-| POST | `/ingest` | `X-Api-Token` если задан `FLASK_API_TOKEN` | публичный вход в квалификатор |
+| POST | `/ingest` | `X-Api-Token` если задан `FLASK_API_TOKEN` | публичный вход в квалификатор; ответ: CRM-блок + `action` (inbox-контракт) |
 | GET | `/login` | — | UI |
 | GET | `/help` | session | справка менеджера |
 | GET | `/deals/` | session | список |

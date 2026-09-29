@@ -72,8 +72,15 @@ def get_openai_client() -> OpenAI:
 
     apply_outbound_proxy_env()
     proxy = openai_proxy_url()
-    # Через прокси запросы дольше; жёсткий лимит, чтобы CRM не «висел» и не ловил Failed to fetch
+    # Через прокси запросы дольше; жёсткий лимит, чтобы CRM не «висел».
+    # max_retries=0 обязательно: дефолт SDK = 2, и 35с×3 ≈ 105с — curl/Waitress
+    # обрывают запрос раньше, чем pipeline успеет уйти в regex-fallback.
     timeout_s = float(os.getenv("OPENAI_TIMEOUT", "35" if proxy else "60"))
+    client_kwargs: dict[str, Any] = {
+        "api_key": api_key,
+        "timeout": timeout_s,
+        "max_retries": 0,
+    }
     if proxy:
         try:
             import httpx
@@ -82,9 +89,8 @@ def get_openai_client() -> OpenAI:
                 "Для OPENAI_PROXY нужен пакет httpx (pip install httpx)"
             ) from exc
         # openai.proxy = {...} устарело; в SDK v1 — httpx Client(proxy=...)
-        http_client = httpx.Client(proxy=proxy, timeout=timeout_s)
-        return OpenAI(api_key=api_key, http_client=http_client)
-    return OpenAI(api_key=api_key, timeout=timeout_s)
+        client_kwargs["http_client"] = httpx.Client(proxy=proxy, timeout=timeout_s)
+    return OpenAI(**client_kwargs)
 
 
 # Обратная совместимость для внутренних импортов

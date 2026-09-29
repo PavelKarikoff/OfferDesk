@@ -394,6 +394,7 @@ CRM вызывает её из `_parse_transcript_for_crm` (`web_app/routes_deal
 | `extraction/llm_extractor.py` | промпт + `chat_json` + валидация; ошибки пробрасывает в pipeline |
 | `extraction/regex_fallback.py` | `parse_transcript_local` → `DealExtraction` |
 | `extraction/crm_adapter.py` | `to_crm_dict`: типы → строки CRM, приоритет overrides |
+| `extraction/actions.py` | inbox-контракт поверх pipeline: `intent` / `summary` / `priority` / `next_action` / `fields` / `confidence` / `escalate` |
 | `extraction/prompts/extractor_v1.md` | system prompt: схема, enum, два примера |
 | `extraction/validation/rules.py` | бизнес-правила: `issues` ломают `ok`, `warnings` нет |
 | `extraction/validation/escalation.py` | `escalate()` → `EscalationDecision` или `None` |
@@ -534,7 +535,8 @@ python main.py --kp --no-open
 - актуальные прайсы из БД / 1С;
 - реальная отправка e-mail;
 - выгрузка в CRM;
-- ТЗ для внешнего инженера.
+- ТЗ для внешнего инженера;
+- черновик ответа клиенту отдельным LLM-вызовом с `temperature=0.7` (`chat_json` сейчас фиксирован на 0.2).
 
 ---
 

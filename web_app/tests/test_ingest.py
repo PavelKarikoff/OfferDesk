@@ -103,6 +103,16 @@ class IngestEndpointTests(unittest.TestCase):
         self.assertIn("extraction", body)
         self.assertIn("crm", body)
         self.assertEqual(body["crm"]["client_name"], "Сергей")
+        action = body["action"]
+        for key in (
+            "intent", "summary", "priority", "next_action",
+            "fields", "confidence", "escalate",
+        ):
+            self.assertIn(key, action)
+        self.assertEqual(action["intent"], "quote_request")
+        self.assertEqual(action["confidence"], "low")  # source=regex
+        self.assertFalse(action["escalate"])
+        self.assertEqual(action["fields"]["client_name"], "Сергей")
 
     def test_pipeline_json_and_audit_log(self):
         fake = _sample_extraction()
@@ -118,6 +128,8 @@ class IngestEndpointTests(unittest.TestCase):
         self.assertIn("ok", body["validation"])
         self.assertIn("client", body["extraction"])
         self.assertEqual(body["crm"]["extraction_source"], "llm")
+        self.assertEqual(body["action"]["confidence"], "high")
+        self.assertEqual(body["action"]["meta"]["source"], "llm")
 
         conn = sqlite3.connect("deals.db")
         conn.row_factory = sqlite3.Row
