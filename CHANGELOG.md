@@ -5,6 +5,29 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версии — [SemVer](https://semver.org/lang/ru/).
 
+## [1.1.0] — 2026-09-29
+
+AI-квалификатор лидов для ИЖС: LLM-слой поверх CRM
+(заявка -> JSON-схема -> валидация -> эскалация -> lead scoring -> сделка).
+
+### Добавлено
+
+- `extraction/` — LLM-извлечение заявки в JSON-схему (client / object / deal / sales_signals / confidence / missing_fields), промпты `extractor_v1` / `extractor_v2`, regex-fallback при недоступности LLM.
+- `extraction/validation/` — бизнес-правила (бюджет >= 3 млн, площадь 50–500 м², цена/м² >= 60k, форматы) и эскалация: суд/юрид -> юрист + руководитель; негатив + низкий etalon_score -> руководитель.
+- `extraction/scoring/` — lead scoring A/B/C по 6 факторам (A >= 0.7, B >= 0.4, C < 0.4).
+- `extraction/audit/` — `audit_log` и `get_last_audit` (deal_id, source, confidence, etalon_score, lead_grade, escalation).
+- Golden set (15 кейсов) + baseline regex, скрипты `run_golden_set.py` / `compare_runs.py`, отчёты в `reports/`.
+- Документация: `docs/ARCHITECTURE.md`, `docs/ROI.md`, `docs/OFFER.md`, `docs/KNOWN_ISSUES.md`.
+- 41 новый тест (итого 86).
+
+### Изменено
+
+- CRM: разбор протокола через `extract()` вместо `parse_transcript_local`; в карточке сделки — грейд лида и эскалация.
+
+### Исправлено
+
+- Эскалация: убран триггер `low_confidence`, `legal_risk` определяется по сырому тексту.
+
 ## [1.0.0] — 2026-08-13
 
 Первый продакшен-релиз: Telegram-бот + веб-CRM на VPS (BlueTerbium),
@@ -62,4 +85,5 @@
 - ТЗ для внешнего инженера.
 - Выгрузка в внешнюю CRM.
 
+[1.1.0]: https://github.com/PavelKoff2025/OfferDesk/releases/tag/v1.1.0
 [1.0.0]: https://github.com/PavelKoff2025/OfferDesk/releases/tag/v1.0.0
