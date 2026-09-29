@@ -30,20 +30,25 @@ Precision около 1.00 по бюджету и площади была фик�
 Фиктивный второй вызов при 0.2 на защиту не выносим: это честнее.
 План: параметр temperature в `chat_json` + модуль `extraction/draft_reply.py`.
 
-## Regex не эскалирует по confidence=0.3
+## Regex не эскалирует по confidence=0.3 (сознательное отклонение)
 
-Чеклист: `confidence=low` → `escalate=true`.
-У regex `confidence.overall` всегда `0.3` — это метка канала, не оценка качества.
-Если эскалировать по порогу 0.6, в очередь человеку уйдёт каждая fallback-сделка.
+Чеклист требует: `confidence=low → escalate=true`. В проде:
 
-**Сознательное отклонение:** `low_confidence` срабатывает только при `source=llm`.
-Regex по уверенности не эскалирует. Нехватка данных ловится отдельно:
-`etalon_score < 30` → `insufficient_data` (мягкая эскалация, `intent=qualify`).
+- **LLM-канал** (`source=llm`): confidence < 0.6 → эскалация.
+- **Regex-канал** (`source=regex`): не эскалируем по confidence — у канала
+  всегда 0.3, иначе каждая fallback-сделка уходила бы к менеджеру.
 
-LLM-падение (невалидный JSON / схема / сеть) → `llm_failed`, даже если regex
-собрал карточку. Полный провал LLM+regex → HTTP 200 и безопасный envelope,
-не 500.
+Вместо этого для обоих каналов: `etalon_score < 30` → `insufficient_data`
+→ мягкая эскалация (intent=qualify, escalate=true, next_action: уточнить поля).
 
+Это правило, а не шум: regex-fallback в 71% случаев извлекает корректные
+поля, эскалировать каждую regex-сделку — снижать пропускную способность.
+
+LLM-падение (невалидный JSON / схема / сеть / timeout) → `llm_failed`, даже
+если regex собрал карточку. Полный провал LLM+regex → HTTP 200 и безопасный
+envelope, не 500.
+
+## transcript_parser_local теряет дробную часть бюджета
 
 «6.5 млн» → «5 млн руб». Не блокер: fallback даёт грубую оценку,
 точность — задача LLM-слоя.
