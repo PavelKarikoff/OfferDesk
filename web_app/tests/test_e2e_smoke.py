@@ -122,6 +122,11 @@ class CrmE2ESmokeTests(unittest.TestCase):
         self.assertEqual(body.get("service"), "dommaster-crm")
         self.assertEqual((body.get("checks") or {}).get("db"), "ok")
 
+    def test_01b_ingest_endpoint_exists(self):
+        r = self.client.post("/ingest", json={})
+        self.assertIn(r.status_code, (400, 401))
+        self.assertIn(r.get_json().get("error"), ("transcript is required", "unauthorized"))
+
     def test_02_login_and_pages(self):
         r = self.client.post(
             "/login",

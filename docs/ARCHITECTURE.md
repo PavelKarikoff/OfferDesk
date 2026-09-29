@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart TD
-    T[Транскрибация звонка] --> P[extraction.pipeline.extract]
+    T[POST /ingest или форма CRM] --> P[extraction.pipeline.extract]
     P -->|LLM доступен| L[llm_extractor]
     P -->|LLM недоступен| R[regex_fallback]
     L --> C{confidence >= 0.5?}
@@ -108,7 +108,7 @@ Grade: A ≥ 0.7, B ≥ 0.4, C < 0.4.
 - `tests/test_validation.py` — 11 тестов (rules + escalation).
 - `tests/test_scoring.py` — 5 тестов (A/B/C, факторы).
 - `tests/test_extraction_quality.py` — пороговый тест по golden set.
-- `web_app/tests/` — 45 существующих тестов.
+- `web_app/tests/` — 51 существующих тестов.
 
 Запуск:
 

@@ -4,7 +4,7 @@
 
 Сырой текст с сайта, Авито, Циан или из транскрибации звонка → структурированный JSON → квалификация A/B/C → эскалация риска → сделка в CRM → задача менеджеру. Первый рабочий контур — веб-CRM «Дом-Мастер» (не чат-бот): карточка сделки, эталон, PDF-КП, email.
 
-Прод: [http://194.67.103.144:5001](http://194.67.103.144:5001) · health: `GET /health` · тег [`v1.1.0`](https://github.com/PavelKoff2025/OfferDesk/releases/tag/v1.1.0)
+Прод: [http://194.67.103.144:5001](http://194.67.103.144:5001) · health: `GET /health` · ingest: `POST /ingest` · тег [`v1.1.0`](https://github.com/PavelKoff2025/OfferDesk/releases/tag/v1.1.0)
 
 ![Карточка сделки: regex, лид C, эскалация](docs/screenshots/prod_deal_card_escalation.png)
 
@@ -168,7 +168,7 @@ Baseline regex: exact `etalon_score` **8/15 (53.3%)**. Regex держит тел
 
 ### Инфраструктура
 
-Docker, Waitress + systemd на VPS, health каждые 5 минут, бэкап `deals.db`, OpenAI через `OPENAI_PROXY`. Тесты: **88 зелёных** (`pytest` из корня). CLI/API генерации АР/ИР: `main.py`, `flask_app.py`, `go_server/`.
+Docker, Waitress + systemd на VPS, health каждые 5 минут, бэкап `deals.db`, OpenAI через `OPENAI_PROXY`. Тесты: **94 зелёных** (`pytest` из корня). CLI/API генерации АР/ИР: `main.py`, `flask_app.py`, `go_server/`.
 
 ---
 
@@ -225,7 +225,7 @@ cp .env.example .env
 | `CRM_PUBLIC_URL` | публичный URL |
 | `CRM_ADMIN_USERS` | доп. администраторы |
 | `TELEGRAM_BOT_TOKEN` | опционально: КП в Telegram |
-| `FLASK_API_TOKEN` | HTTP API генерации |
+| `FLASK_API_TOKEN` | HTTP API генерации и `POST /ingest` |
 
 ### 4. Запуск CRM
 
@@ -250,6 +250,49 @@ python main.py --kp
 python main.py --serve          # Flask API
 cd go_server && go run ./cmd/server
 ```
+
+### POST /ingest — приём заявок в контур квалификации
+
+Публичный endpoint для внешних источников (сайт, Авито, Циан):
+принимает JSON с текстом заявки, прогоняет через extraction pipeline,
+валидирует, эскалирует, считает lead scoring, пишет в `audit_log`.
+
+```bash
+curl -X POST http://127.0.0.1:5001/ingest \
+     -H "Content-Type: application/json" \
+     -H "X-Api-Token: $FLASK_API_TOKEN" \
+     -d '{
+       "transcript": "Здравствуйте, меня зовут Сергей. Телефон +7 916 123-45-67, почта sergey@example.com. Участок есть, 12 соток в Московской области. Хочу дом из газобетона, 150 квадратов. Бюджет около 9 миллионов, ипотека. Начать хотим в ноябре 2026."
+     }'
+```
+
+Пример ответа:
+
+```json
+{
+  "source": "regex",
+  "etalon_score": 71,
+  "lead_grade": "C",
+  "lead_score": 0.3,
+  "validation": {"ok": true, "issues": [], "warnings": []},
+  "escalation": null,
+  "extraction": { "...": "DealExtraction" },
+  "crm": { "...": "CRM-словарь" }
+}
+```
+
+При заданном `FLASK_API_TOKEN` требуется заголовок `X-Api-Token`. Если токен в `.env` не задан, заголовок не нужен (только для локальной разработки). Сделка в CRM не создаётся.
+
+### Скрипт-пример `scripts/ingest_example.py`
+
+Автоматический вход без ручного `curl`:
+
+```bash
+python3 scripts/ingest_example.py
+# Ожидаемо: source: regex, etalon_score: 71, lead_grade: C, escalation: None
+```
+
+CRM должна быть запущена (`cd web_app && PYTHONPATH=.. python3 app.py`). URL и токен: `INGEST_URL`, `FLASK_API_TOKEN`.
 
 ### 6. Docker
 
@@ -288,7 +331,7 @@ BASE_URL=http://127.0.0.1:5001 ./scripts/check_endpoints.sh --quick
 ├── knowledge_base/        # эталон протокола, прайс, демо-протоколы
 ├── utils/                 # КП / АР / ИР / PDF, chat_json
 ├── templates/             # Jinja2 PDF
-├── scripts/               # golden set, деплой, health
+├── scripts/               # golden set, деплой, health, ingest_example
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── ROI.md
