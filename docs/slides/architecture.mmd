@@ -1,0 +1,21 @@
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#1a222b', 'primaryTextColor': '#f4f1ea', 'primaryBorderColor': '#c4b59a', 'lineColor': '#c4b59a', 'secondaryColor': '#151c24', 'tertiaryColor': '#0e1318', 'background': '#0e1318', 'mainBkg': '#1a222b', 'nodeBorder': '#2c3640', 'clusterBkg': '#151c24', 'titleColor': '#c4b59a', 'edgeLabelBackground': '#0e1318', 'textColor': '#f4f1ea'}}}%%
+flowchart TD
+    T[POST /ingest или форма CRM] --> P[extraction.pipeline.extract]
+    P -->|LLM доступен| L[llm_extractor]
+    P -->|LLM недоступен| R[regex_fallback]
+    L --> C{confidence >= 0.5?}
+    C -->|да| D[DealExtraction]
+    C -->|нет| M[merge LLM + regex]
+    M --> D
+    R --> D
+    D --> V[validate]
+    D --> E[escalate]
+    D --> S[lead_score]
+    V --> CRM[crm_adapter]
+    E --> CRM
+    S --> CRM
+    CRM --> ACT[actions.build_envelope]
+    CRM --> A[audit_log]
+    CRM --> K[КП PDF + email/Telegram]
+    A --> DB[(SQLite deals.db)]
+    ACT --> IN[crm + action]

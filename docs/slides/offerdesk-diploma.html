@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>OfferDesk — AI-квалификатор лидов для ИЖС</title>
+  <style>
+    @page { size: 338.7mm 190.5mm; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #0e1318; }
+    body {
+      font-family: "PT Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: #f4f1ea;
+    }
+
+    .slide {
+      width: 338.7mm;
+      height: 190.5mm;
+      padding: 11mm 15mm 14mm;
+      position: relative;
+      overflow: hidden;
+      page-break-after: always;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      display: flex;
+      flex-direction: column;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      background:
+        radial-gradient(1100px 480px at -8% -18%, rgba(196,181,154,.09), transparent 55%),
+        radial-gradient(800px 400px at 108% 118%, rgba(107,154,120,.06), transparent 50%),
+        #0e1318;
+    }
+    .slide:last-child { page-break-after: auto; }
+    .left-gold {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+      background: linear-gradient(180deg, #c4b59a, #6b5844);
+    }
+
+    .kicker {
+      letter-spacing: .28em;
+      font-size: 10.5px;
+      color: #c4b59a;
+      text-transform: uppercase;
+      font-weight: 700;
+      flex: 0 0 auto;
+    }
+    h1 {
+      font-family: "PT Serif", Georgia, serif;
+      font-size: 30px;
+      font-weight: 600;
+      margin: 4px 0 12px;
+      letter-spacing: -.02em;
+      line-height: 1.12;
+      flex: 0 0 auto;
+    }
+    h1.hero {
+      font-size: 68px;
+      margin: 8px 0 8px;
+      letter-spacing: -.04em;
+      font-weight: 700;
+    }
+    h1.hero span { color: #c4b59a; }
+
+    footer.bar {
+      position: absolute;
+      left: 15mm; right: 15mm; bottom: 5.5mm;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 10.5px; letter-spacing: .22em; color: #9a8f7a; text-transform: uppercase;
+    }
+    .gold-rule {
+      height: 1px; width: 88mm; border: 0;
+      background: linear-gradient(90deg, #c4b59a, transparent);
+      margin: 12px 0 16px;
+    }
+
+    .grow { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; min-height: 0; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; flex: 1; min-height: 0; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; flex: 1; min-height: 0; }
+    .grid-23 { display: grid; grid-template-columns: 1.2fr .8fr; gap: 14px; flex: 1; min-height: 0; }
+    .grid-32 { display: grid; grid-template-columns: .85fr 1.15fr; gap: 14px; flex: 1; min-height: 0; }
+    .grid-22 { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; flex: 1; min-height: 0; }
+
+    .card {
+      background: #1a222b;
+      border: 1px solid #2c3640;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .card h2 {
+      font-size: 11.5px; margin: 0 0 8px; color: #c4b59a;
+      font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    }
+    .stat {
+      font-family: "PT Serif", Georgia, serif;
+      font-size: 36px; font-weight: 700; line-height: 1; margin: 2px 0 8px;
+    }
+    .stat.bad { color: #e07a6a; }
+    .stat.good { color: #8fcaa0; }
+    .stat.gold { color: #e0d0b4; }
+    .muted { color: #c2b9ab; font-size: 14.5px; line-height: 1.4; margin: 0; }
+    .tiny { font-size: 12px; color: #9a8f7a; line-height: 1.35; margin: 0; }
+    p, li { font-size: 15px; line-height: 1.42; margin: 0 0 6px; }
+    ul { margin: 0; padding-left: 18px; }
+    code, .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    th {
+      text-align: left; color: #c4b59a; font-size: 11px;
+      letter-spacing: .12em; text-transform: uppercase; font-weight: 700;
+      padding: 7px 8px; border-bottom: 1px solid #2c3640;
+    }
+    td { padding: 7px 8px; border-bottom: 1px solid #24303a; vertical-align: middle; }
+    tr:last-child td { border-bottom: 0; }
+
+    .pill {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 11px; background: #24303a; color: #e0d0b4;
+    }
+    .quote {
+      flex: 0 0 auto;
+      background: #1a222b;
+      border: 1px solid #3a3126;
+      border-left: 3px solid #c4b59a;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: "PT Serif", Georgia, serif;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .flow { display: flex; flex-direction: column; gap: 7px; flex: 1; }
+    .flow-row { display: flex; gap: 10px; align-items: stretch; flex: 1; }
+    .node {
+      background: #1a222b; border: 1px solid #2c3640; border-radius: 8px;
+      padding: 10px 12px; text-align: center; font-size: 13.5px; line-height: 1.3;
+      flex: 1; display: flex; flex-direction: column; justify-content: center;
+    }
+    .node strong { display: block; font-size: 14.5px; margin-bottom: 3px; }
+    .node.gold { border-color: #c4b59a; background: #221c16; }
+    .node.green { border-color: #3d5c46; background: #16221b; }
+    .arrow { text-align: center; color: #c4b59a; font-size: 13px; letter-spacing: .35em; flex: 0 0 12px; line-height: 12px; }
+
+    .layers td:first-child { width: 30%; color: #e0d0b4; font-weight: 700; font-size: 13px; }
+    .layers td { padding: 8px 8px; font-size: 13.5px; }
+
+    .heat-0 { background: #3a1e1c; color: #f0b0a6; font-weight: 700; text-align: center; }
+    .heat-1 { background: #3a2a16; color: #f0d09a; font-weight: 700; text-align: center; }
+    .heat-2 { background: #2a3218; color: #d8e08a; font-weight: 700; text-align: center; }
+    .heat-3 { background: #163428; color: #9dcea8; font-weight: 700; text-align: center; }
+    .heat-4 { background: #14382c; color: #b6ecc4; font-weight: 800; text-align: center; }
+
+    .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; min-height: 0; }
+    .shot-card { display: flex; flex-direction: column; min-height: 0; }
+    .shot-wrap {
+      background: #eef1f6; border-radius: 8px; overflow: hidden;
+      border: 1px solid #2c3640; flex: 1; min-height: 0;
+    }
+    .shot-wrap img { width: 100%; height: 100%; object-fit: contain; object-position: top center; display: block; background: #eef1f6; }
+    .shot-cap { font-size: 11.5px; color: #9a8f7a; margin-top: 5px; }
+
+    .bar-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+    .bar-label { width: 132px; font-size: 15px; }
+    .bar-track { flex: 1; height: 20px; background: #151c24; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, #a89072, #c4b59a); }
+    .bar-w { width: 42px; text-align: right; font-size: 14px; color: #e0d0b4; font-weight: 700; }
+
+    .grade { text-align: center; justify-content: center; }
+    .grade .letter {
+      font-family: "PT Serif", Georgia, serif;
+      font-size: 58px; font-weight: 700; line-height: 1; margin: 6px 0 4px;
+    }
+    .grade.a { border-color: #c4b59a; }
+    .grade.a .letter { color: #e0d0b4; }
+    .grade.b .letter { color: #9eb4c8; }
+    .grade.c .letter { color: #8a8176; }
+
+    .metric-big { text-align: center; justify-content: center; }
+    .metric-big .v {
+      font-family: "PT Serif", Georgia, serif;
+      font-size: 50px; font-weight: 700; line-height: 1; margin: 8px 0 8px;
+    }
+
+    .title-sub {
+      font-size: 26px; color: #e0d0b4; margin: 0 0 22px;
+      font-family: "PT Serif", Georgia, serif; font-weight: 400;
+    }
+    .meta-line { font-size: 16px; color: #c4b59a; letter-spacing: .06em; margin: 0 0 8px; }
+    .meta-dim { font-size: 16px; color: #b8b0a2; margin: 0; }
+
+    .n {
+      display: inline-block; width: 24px; height: 24px; line-height: 24px;
+      text-align: center; border-radius: 50%; vertical-align: middle;
+      background: #c4b59a; color: #0e1318; font-size: 12px; font-weight: 700;
+      margin-right: 10px;
+    }
+    .roadmap { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: space-evenly; flex: 1; }
+    .roadmap li { font-size: 17px; display: flex; align-items: center; }
+
+    .hero-shot {
+      border-radius: 10px; overflow: hidden; border: 1px solid #2c3640;
+      box-shadow: 0 18px 50px rgba(0,0,0,.45); height: 100%;
+      background: #111;
+    }
+    .hero-shot img { width: 100%; height: 100%; object-fit: cover; object-position: top left; display: block; }
+
+    .arch { overflow: hidden; }
+    .arch svg { width: 186mm; height: 124mm; display: block; }
+    .ok, .good { color: #8fcaa0; }
+  </style>
+</head>
+<body>
+
+<!-- 1 TITLE -->
+<section class="slide">
+  <div class="left-gold"></div>
+  <div class="grid-2" style="flex:1; align-items:stretch; margin-bottom: 8mm;">
+    <div style="display:flex; flex-direction:column; justify-content:center; padding-right: 8mm;">
+      <div class="kicker">Выпускной проект · Вайбкодинг · Zerocoder</div>
+      <hr class="gold-rule">
+      <h1 class="hero">Offer<span>Desk</span></h1>
+      <p class="title-sub">AI-квалификатор лидов для ИЖС</p>
+      <p class="meta-line">Павел Кофф · 02.10.2026</p>
+      <p class="meta-dim">Модель структурирует, код решает</p>
+    </div>
+    <div class="hero-shot">
+      <img src="../screenshots/Дашборд.png" alt="Дашборд OfferDesk">
+    </div>
+  </div>
+  <footer class="bar"><span>Offer · Desk</span><span>01 / 12</span></footer>
+</section>
+
+<!-- 2 PROBLEM -->
+<section class="slide">
+  <div class="kicker">Контекст · отдел продаж ИЖС</div>
+  <h1>Отдел продаж ИЖС теряет лиды</h1>
+  <div class="grid-22">
+    <div class="card">
+      <h2>Скорость реакции</h2>
+      <div class="stat bad">30–40%</div>
+      <p class="muted">лидов уходят из-за медленного ответа. Норма — 15 минут, факт — часы.</p>
+    </div>
+    <div class="card">
+      <h2>Ручное КП</h2>
+      <div class="stat bad">40–60 мин</div>
+      <p class="muted">на подготовку одного коммерческого предложения вручную.</p>
+    </div>
+    <div class="card">
+      <h2>Regex теряет ключевые поля</h2>
+      <table>
+        <tr><td><code>budget_rub</code></td><td class="heat-0">recall 0.00</td></tr>
+        <tr><td><code>start_date</code></td><td class="heat-0">recall 0.30</td></tr>
+        <tr><td><code>financing</code></td><td class="heat-1">recall 0.50</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Нет контроля качества</h2>
+      <div class="stat gold">заглушки?</div>
+      <p class="muted">Где реальные данные, где пустые поля — менеджер не видит. Заявка может быть молча испорчена.</p>
+    </div>
+  </div>
+  <footer class="bar"><span>Offer · Desk</span><span>02 / 12</span></footer>
+</section>
+
+<!-- 3 PIPELINE -->
+<section class="slide">
+  <div class="kicker">Решение</div>
+  <h1>Один pipeline — два входа</h1>
+  <div class="flow">
+    <div class="flow-row">
+      <div class="node">
+        <strong>Заявка</strong>
+        сайт / Авито / Циан
+        <div class="tiny" style="margin-top:6px;"><code>POST /ingest</code> JSON</div>
+      </div>
+      <div class="node">
+        <strong>Звонок</strong>
+        форма CRM
+        <div class="tiny" style="margin-top:6px;"><code>/deals/new</code></div>
+      </div>
+    </div>
+    <div class="arrow">▼</div>
+    <div class="node gold">
+      <strong>extraction.pipeline.extract()</strong>
+      LLM → JSON → DealExtraction → merge с regex
+    </div>
+    <div class="arrow">▼</div>
+    <div class="flow-row">
+      <div class="node"><strong>validate</strong>бюджет, площадь, форматы</div>
+      <div class="node"><strong>escalate</strong>legal_risk · llm_failed · …</div>
+      <div class="node"><strong>score</strong>лид A / B / C</div>
+      <div class="node"><strong>audit_log</strong>пишется всегда</div>
+    </div>
+    <div class="arrow">▼</div>
+    <div class="node green">
+      <strong>CRM-сделка + inbox-контракт action</strong>
+      intent / priority / next_action — считает код, не модель
+    </div>
+  </div>
+  <p class="quote">«Модель структурирует, код решает».</p>
+  <footer class="bar"><span>Offer · Desk</span><span>03 / 12</span></footer>
+</section>
+
+<!-- 4 ARCHITECTURE -->
+<section class="slide">
+  <div class="kicker">extraction/ · единая точка входа</div>
+  <h1>Архитектура extraction/</h1>
+  <div class="grid-23">
+    <div class="card arch" style="padding:8px 6px 4px; flex:none;">
+      <svg viewBox="0 0 740 500" width="186mm" height="124mm" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#c4b59a"/>
+          </marker>
+        </defs>
+        <rect x="220" y="8" width="300" height="40" rx="7" fill="#221c16" stroke="#c4b59a" stroke-width="1.4"/>
+        <text x="370" y="33" fill="#f4f1ea" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle">POST /ingest или форма CRM</text>
+
+        <line x1="370" y1="48" x2="370" y2="68" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+
+        <rect x="200" y="70" width="340" height="42" rx="7" fill="#221c16" stroke="#c4b59a" stroke-width="1.4"/>
+        <text x="370" y="96" fill="#f4f1ea" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle">extraction.pipeline.extract()</text>
+
+        <line x1="280" y1="112" x2="160" y2="138" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+        <line x1="460" y1="112" x2="580" y2="138" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+        <text x="200" y="128" fill="#9a8f7a" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="10.5">LLM доступен</text>
+        <text x="575" y="128" fill="#9a8f7a" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="10.5" text-anchor="middle">LLM недоступен</text>
+
+        <rect x="40" y="140" width="240" height="42" rx="7" fill="#1a222b" stroke="#3a4552" stroke-width="1.2"/>
+        <text x="160" y="166" fill="#f4f1ea" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle">llm_extractor</text>
+        <rect x="460" y="140" width="240" height="42" rx="7" fill="#1a222b" stroke="#3a4552" stroke-width="1.2"/>
+        <text x="580" y="166" fill="#f4f1ea" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle">regex_fallback</text>
+
+        <line x1="160" y1="182" x2="160" y2="208" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+        <line x1="580" y1="182" x2="580" y2="268" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+
+        <rect x="55" y="210" width="210" height="42" rx="7" fill="#1a222b" stroke="#3a4552" stroke-width="1.2"/>
+        <text x="160" y="236" fill="#f4f1ea" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle">confidence ≥ 0.5?</text>
+
+        <line x1="265" y1="231" x2="328" y2="231" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+        <text x="290" y="222" fill="#9a8f7a" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="10.5">да</text>
+        <line x1="160" y1="252" x2="160" y2="278" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+        <text x="172" y="270" fill="#9a8f7a" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="10.5">нет</text>
+
+        <rect x="40" y="280" width="240" height="40" rx="7" fill="#1a222b" stroke="#3a4552" stroke-width="1.2"/>
+        <text x="160" y="305" fill="#f4f1ea" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle">merge LLM + regex</text>
+
+        <rect x="330" y="210" width="240" height="42" rx="7" fill="#16221b" stroke="#4a7a58" stroke-width="1.3"/>
+        <text x="450" y="236" fill="#f4f1ea" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle">DealExtraction</text>
+
+        <line x1="280" y1="300" x2="370" y2="268" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+        <line x1="580" y1="270" x2="500" y2="252" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+
+        <line x1="400" y1="252" x2="145" y2="348" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+        <line x1="450" y1="252" x2="370" y2="348" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+        <line x1="500" y1="252" x2="595" y2="348" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+
+        <rect x="40" y="350" width="210" height="36" rx="7" fill="#1a222b" stroke="#3a4552" stroke-width="1.2"/>
+        <text x="145" y="373" fill="#f4f1ea" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle">validate</text>
+        <rect x="265" y="350" width="210" height="36" rx="7" fill="#1a222b" stroke="#3a4552" stroke-width="1.2"/>
+        <text x="370" y="373" fill="#f4f1ea" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle">escalate</text>
+        <rect x="490" y="350" width="210" height="36" rx="7" fill="#1a222b" stroke="#3a4552" stroke-width="1.2"/>
+        <text x="595" y="373" fill="#f4f1ea" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle">lead_score</text>
+
+        <line x1="145" y1="386" x2="280" y2="410" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+        <line x1="370" y1="386" x2="370" y2="410" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+        <line x1="595" y1="386" x2="460" y2="410" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+
+        <rect x="200" y="412" width="340" height="36" rx="7" fill="#221c16" stroke="#c4b59a" stroke-width="1.4"/>
+        <text x="370" y="435" fill="#f4f1ea" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle">crm_adapter → CRM-словарь</text>
+
+        <line x1="260" y1="448" x2="160" y2="468" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+        <line x1="370" y1="448" x2="370" y2="468" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+        <line x1="480" y1="448" x2="580" y2="468" stroke="#c4b59a" stroke-width="1.3" marker-end="url(#arr)"/>
+
+        <rect x="40" y="470" width="240" height="28" rx="6" fill="#1a222b" stroke="#3a4552" stroke-width="1.2"/>
+        <text x="160" y="489" fill="#f4f1ea" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="12" text-anchor="middle">actions.build_envelope</text>
+        <rect x="290" y="470" width="160" height="28" rx="6" fill="#1a222b" stroke="#3a4552" stroke-width="1.2"/>
+        <text x="370" y="489" fill="#f4f1ea" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="12" text-anchor="middle">audit_log → SQLite</text>
+        <rect x="460" y="470" width="240" height="28" rx="6" fill="#1a222b" stroke="#3a4552" stroke-width="1.2"/>
+        <text x="580" y="489" fill="#f4f1ea" font-family="PT Sans, Helvetica, Arial, sans-serif" font-size="12" text-anchor="middle">КП: PDF + email / Telegram</text>
+      </svg>
+    </div>
+    <div class="card" style="padding:12px 14px;">
+      <h2>9 слоёв</h2>
+      <table class="layers" style="flex:1;">
+        <tr><td>schema</td><td>DealExtraction, etalon_score</td></tr>
+        <tr><td>llm_extractor</td><td>structured output, промпт v1/v2</td></tr>
+        <tr><td>regex_fallback</td><td>контур отказа, 53.3% exact</td></tr>
+        <tr><td>pipeline</td><td>единственная точка extract()</td></tr>
+        <tr><td>validation</td><td>бюджет, площадь, форматы</td></tr>
+        <tr><td>escalation</td><td>legal_risk, llm_failed, …</td></tr>
+        <tr><td>scoring</td><td>A ≥ 0.7 · B ≥ 0.4 · C</td></tr>
+        <tr><td>actions</td><td>inbox-контракт — считает код</td></tr>
+        <tr><td>audit</td><td>пишется всегда</td></tr>
+      </table>
+    </div>
+  </div>
+  <p class="tiny">9 слоёв, единая точка <code>pipeline.extract()</code>, контур отказа через regex-fallback.</p>
+  <footer class="bar"><span>Offer · Desk</span><span>04 / 12</span></footer>
+</section>
+
+<!-- 5 LLM VS CODE -->
+<section class="slide">
+  <div class="kicker">Принцип</div>
+  <h1>Разделение ответственности</h1>
+  <div class="grid-2">
+    <div class="card">
+      <h2>LLM структурирует</h2>
+      <p style="font-size:16px; margin-bottom:12px;"><code>DealExtraction</code> — JSON Schema + Pydantic</p>
+      <ul>
+        <li>бюджет, площадь, срок, участок</li>
+        <li>финансирование, материал, контакты</li>
+        <li>sentiment / tone / objections</li>
+        <li>confidence по полям</li>
+      </ul>
+      <p class="tiny" style="margin-top:auto; padding-top:12px;">Температура извлечения 0.2. Модель не ставит цену и не выбирает next_action.</p>
+    </div>
+    <div class="card" style="border-color:#c4b59a;">
+      <h2>Код решает</h2>
+      <p style="font-size:16px; margin-bottom:12px;"><code>validate → escalate → score → action</code></p>
+      <ul>
+        <li><code>intent</code> — quote / qualify / escalate / reject</li>
+        <li><code>priority</code> — low / medium / high</li>
+        <li><code>next_action</code> — что делать менеджеру</li>
+        <li><code>escalate</code> — bool, считает код</li>
+      </ul>
+      <p class="tiny" style="margin-top:auto; padding-top:12px;">Envelope собирается поверх схемы. LLM не может переопределить маршрут.</p>
+    </div>
+  </div>
+  <p class="quote">
+    <strong>priority</strong> и <strong>escalate</strong> считает код, не LLM.
+    Модель не может «замолчать» юридический риск или провал валидации.
+  </p>
+  <footer class="bar"><span>Offer · Desk</span><span>05 / 12</span></footer>
+</section>
+
+<!-- 6 QUALITY -->
+<section class="slide">
+  <div class="kicker">Контроль качества · 5 слоёв</div>
+  <h1>Контроль качества</h1>
+  <div class="card" style="flex:0 0 auto; padding:8px 14px 4px; margin-bottom:10px;">
+    <table>
+      <thead><tr><th style="width:22%;">Слой</th><th>Что делает</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Валидация</strong></td><td>Бюджет ≥ 3 млн, площадь 50–500 м², форматы телефона и email</td></tr>
+        <tr><td><strong>Эскалация</strong></td><td><code>legal_risk</code>, <code>validation_failed</code>, <code>low_confidence</code> (LLM), <code>llm_failed</code>, <code>insufficient_data</code></td></tr>
+        <tr><td><strong>Actions</strong></td><td><code>intent</code> / <code>priority</code> / <code>next_action</code> / <code>confidence</code> (enum) / <code>escalate</code></td></tr>
+        <tr><td><strong>Аудит</strong></td><td><code>input_text</code> + <code>result_json</code> + status ∈ {success, escalated, error}</td></tr>
+        <tr><td><strong>Безопасный выход</strong></td><td>При падении LLM: HTTP 200 + envelope с <code>intent=escalate</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="shots">
+    <div class="shot-card">
+      <div class="shot-wrap"><img src="../screenshots/prod_deal_card_lead.png" alt="Карточка лида"></div>
+      <div class="shot-cap">Прод · сделка #8 · regex · лид C · эталон 71%</div>
+    </div>
+    <div class="shot-card">
+      <div class="shot-wrap"><img src="../screenshots/prod_deal_card_escalation.png" alt="Эскалация"></div>
+      <div class="shot-cap">Прод · сделка #9 · эскалация · эталон 43%</div>
+    </div>
+  </div>
+  <p class="quote">Заявка не может быть молча проглочена — <code>audit_log</code> пишется всегда.</p>
+  <footer class="bar"><span>Offer · Desk</span><span>06 / 12</span></footer>
+</section>
+
+<!-- 7 SCORING -->
+<section class="slide">
+  <div class="kicker">Приоритизация</div>
+  <h1>Lead scoring</h1>
+  <div class="grid-23">
+    <div class="card" style="justify-content:center;">
+      <h2>Факторы</h2>
+      <div class="bar-row"><div class="bar-label">Бюджет ≥ 3 млн</div><div class="bar-track"><div class="bar-fill" style="width:25%"></div></div><div class="bar-w">0.25</div></div>
+      <div class="bar-row"><div class="bar-label">Срок старта</div><div class="bar-track"><div class="bar-fill" style="width:15%"></div></div><div class="bar-w">0.15</div></div>
+      <div class="bar-row"><div class="bar-label">Участок</div><div class="bar-track"><div class="bar-fill" style="width:15%"></div></div><div class="bar-w">0.15</div></div>
+      <div class="bar-row"><div class="bar-label">Нет возражений</div><div class="bar-track"><div class="bar-fill" style="width:15%"></div></div><div class="bar-w">0.15</div></div>
+      <div class="bar-row"><div class="bar-label">Позитив</div><div class="bar-track"><div class="bar-fill" style="width:15%"></div></div><div class="bar-w">0.15</div></div>
+      <div class="bar-row"><div class="bar-label">Decision maker</div><div class="bar-track"><div class="bar-fill" style="width:15%"></div></div><div class="bar-w">0.15</div></div>
+      <p class="tiny" style="margin-top:12px;">Сумма весов = 1.00. Считает код поверх DealExtraction, не модель.</p>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div class="grid-3" style="flex:1;">
+        <div class="card grade a">
+          <div class="kicker">Горячий</div>
+          <div class="letter">A</div>
+          <p class="muted">≥ 0.7</p>
+        </div>
+        <div class="card grade b">
+          <div class="kicker">Тёплый</div>
+          <div class="letter">B</div>
+          <p class="muted">≥ 0.4</p>
+        </div>
+        <div class="card grade c">
+          <div class="kicker">Холодный</div>
+          <div class="letter">C</div>
+          <p class="muted">&lt; 0.4</p>
+        </div>
+      </div>
+      <div class="card" style="flex:0 0 auto;">
+        <p style="margin:0; font-size:16px;">Лид A без эскалации → <code>priority=high</code>.<br>
+        Эскалация любого грейда → тоже <code>high</code>: юрист и руководитель ОП важнее скора.</p>
+      </div>
+    </div>
+  </div>
+  <footer class="bar"><span>Offer · Desk</span><span>07 / 12</span></footer>
+</section>
+
+<!-- 8 METRICS HERO -->
+<section class="slide">
+  <div class="kicker">Главный слайд · golden set 15 кейсов</div>
+  <h1>Метрики: regex → LLM v1 → LLM v2</h1>
+  <div class="grid-3" style="flex:0 0 auto; margin-bottom: 2px;">
+    <div class="card metric-big">
+      <div class="kicker">Regex</div>
+      <div class="v bad">53.3%</div>
+      <div>8 / 15 exact</div>
+      <div class="tiny">regex=15</div>
+    </div>
+    <div class="card metric-big">
+      <div class="kicker">LLM v1</div>
+      <div class="v" style="color:#e0b06a;">80.0%</div>
+      <div>12 / 15 exact</div>
+      <div class="tiny">llm=11 · regex=1 · merged=3</div>
+    </div>
+    <div class="card metric-big" style="border-color:#c4b59a;">
+      <div class="kicker">LLM v2</div>
+      <div class="v good">100%</div>
+      <div>15 / 15 exact</div>
+      <div class="tiny">llm=12 · merged=3 · regex=0</div>
+    </div>
+  </div>
+  <div class="card" style="padding:6px 10px; flex:1;">
+    <table>
+      <thead>
+        <tr>
+          <th>Поле</th>
+          <th style="text-align:center;">regex</th>
+          <th style="text-align:center;">LLM v1</th>
+          <th style="text-align:center;">LLM v2</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>budget_rub</code></td><td class="heat-0">0.00</td><td class="heat-3">0.91</td><td class="heat-4">1.00</td></tr>
+        <tr><td><code>start_date</code></td><td class="heat-0">0.30</td><td class="heat-3">0.90</td><td class="heat-4">1.00</td></tr>
+        <tr><td><code>financing</code></td><td class="heat-1">0.50</td><td class="heat-4">1.00</td><td class="heat-4">1.00</td></tr>
+        <tr><td><code>area_m2</code></td><td class="heat-1">0.54</td><td class="heat-3">0.85</td><td class="heat-4">1.00</td></tr>
+        <tr><td><code>sentiment</code></td><td class="heat-0">0.00</td><td class="heat-2">0.71</td><td class="heat-4">1.00</td></tr>
+        <tr><td><code>phone</code></td><td class="heat-4">1.00</td><td class="heat-0">0.07</td><td class="heat-4">1.00</td></tr>
+        <tr><td><code>tone</code></td><td class="heat-0">0.00</td><td class="heat-3">0.93</td><td class="heat-3">0.93</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tiny">Golden set: 15 кейсов. Промпт-итерация v1 → v2. Regex не достаёт бюджет ни разу. v1 закрыл бюджет, но сломал телефон. v2 с few-shot починил телефон и защитил схему от null — 12 через LLM, 3 через merge, ни одного fallback.</p>
+  <footer class="bar"><span>Offer · Desk</span><span>08 / 12</span></footer>
+</section>
+
+<!-- 9 ROI -->
+<section class="slide">
+  <div class="kicker">Экономика · docs/ROI.md</div>
+  <h1>Окупаемость: от 1 недели до 1 месяца</h1>
+  <div class="grid-4" style="flex:1.1;">
+    <div class="card">
+      <h2>Маржа со сделки</h2>
+      <div class="stat gold">1.2 млн ₽</div>
+      <p class="muted">Чек 8 млн ₽ × маржа 15%.</p>
+    </div>
+    <div class="card">
+      <h2>Высвобождение</h2>
+      <div class="stat">41 500 ₽</div>
+      <p class="muted">83 ч/мес × 500 ₽ — прямая экономия времени менеджеров.</p>
+    </div>
+    <div class="card">
+      <h2>Рост конверсии</h2>
+      <div class="stat good">+1.2–2.4 млн</div>
+      <p class="muted">+1–2 сделки/мес за счёт скорости реакции.</p>
+    </div>
+    <div class="card">
+      <h2>Затраты</h2>
+      <div class="stat">30–50 тыс.</div>
+      <p class="muted">подписка / мес + 15–30 ₽ на сделку (API).</p>
+    </div>
+  </div>
+  <div class="grid-3" style="flex:0.9;">
+    <div class="card grade">
+      <div class="kicker">Пессимистичный</div>
+      <div class="stat" style="font-size:32px; margin-top:10px;">~1 месяц</div>
+      <p class="muted">только высвобождение 41 500 ₽</p>
+    </div>
+    <div class="card grade a">
+      <div class="kicker">Базовый</div>
+      <div class="stat gold" style="font-size:32px; margin-top:10px;">~1 неделя</div>
+      <p class="muted">высвобождение + 1 доп. сделка</p>
+    </div>
+    <div class="card grade">
+      <div class="kicker">Оптимистичный</div>
+      <div class="stat good" style="font-size:32px; margin-top:10px;">~3 дня</div>
+      <p class="muted">высвобождение + 2 доп. сделки</p>
+    </div>
+  </div>
+  <footer class="bar"><span>Offer · Desk</span><span>09 / 12</span></footer>
+</section>
+
+<!-- 10 LIMITS -->
+<section class="slide">
+  <div class="kicker">Честно</div>
+  <h1>Ограничения и что мы честно признаём</h1>
+  <div class="grid-22">
+    <div class="card" style="border-color:#3d5c46;">
+      <h2>Сейчас: LLM v2</h2>
+      <p class="muted">OpenAI доступен, промпт v2. Golden set — <strong class="ok">100% exact</strong> (15/15). Regex — не основной режим.</p>
+    </div>
+    <div class="card">
+      <h2>Контур отказа</h2>
+      <p class="muted">Если API недоступен → regex fallback, <strong>53.3% exact</strong>. Процесс не падает, в <code>audit_log</code> пишется <code>llm_failed</code>.</p>
+    </div>
+    <div class="card">
+      <h2>Таймаут</h2>
+      <p class="muted"><code>timeout=35</code>, <code>max_retries=0</code> → APITimeoutError → fallback за 35 сек, процесс не падает.</p>
+    </div>
+    <div class="card">
+      <h2>Regex confidence</h2>
+      <p class="muted">Не эскалируем по <code>confidence=0.3</code> — шум канала. Мало данных: <code>etalon&lt;30</code> → <code>insufficient_data</code>.</p>
+    </div>
+  </div>
+  <div class="grid-2" style="flex:0.55;">
+    <div class="card">
+      <h2>Цена не у LLM</h2>
+      <p class="muted" style="margin:0;">Модель только структурирует. Цена и юридическая ответственность — у менеджера и прайса компании.</p>
+    </div>
+    <div class="card">
+      <h2>Creative-шаг</h2>
+      <p class="muted" style="margin:0;">Черновик ответа 0.7–0.9 — roadmap. Сейчас <code>chat_json</code> фиксирован на 0.2: температура извлечения, не текста.</p>
+    </div>
+  </div>
+  <p class="quote">Один код, три режима: <code>llm</code> / <code>regex</code> / <code>merged</code>.</p>
+  <footer class="bar"><span>Offer · Desk · KNOWN_ISSUES.md</span><span>10 / 12</span></footer>
+</section>
+
+<!-- 11 ROADMAP -->
+<section class="slide">
+  <div class="kicker">Дальше</div>
+  <h1>Что дальше</h1>
+  <div class="grid-2">
+    <div class="card">
+      <ul class="roadmap">
+        <li><span class="n">1</span> Tone 0.93 → 0.95 — доп. few-shot</li>
+        <li><span class="n">2</span> Интеграция с Битрикс24 / amoCRM</li>
+        <li><span class="n">3</span> Интеграция с 1С — прайс-листы</li>
+      </ul>
+    </div>
+    <div class="card">
+      <ul class="roadmap">
+        <li><span class="n">4</span> Дашборд качества в реальном времени</li>
+        <li><span class="n">5</span> Отдельный creative-шаг (temperature 0.7)</li>
+        <li><span class="n">6</span> NL-прокси на VPS как запасной канал, не как единственный</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card" style="flex:0 0 auto;">
+    <p style="margin:0; font-size:17px;">Основной режим — <code>llm</code> (v2). Тот же <code>pipeline.extract()</code> при сбое API уходит в regex, при низкой уверенности — в merge. Архитектуру менять не нужно.</p>
+  </div>
+  <footer class="bar"><span>Offer · Desk</span><span>11 / 12</span></footer>
+</section>
+
+<!-- 12 OFFER -->
+<section class="slide">
+  <div class="kicker">Оффер</div>
+  <h1>AI-квалификатор лидов для ИЖС</h1>
+  <div class="grid-2">
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div class="card" style="flex:1;">
+        <h2>Кому</h2>
+        <p class="muted" style="font-size:16px;">Строительные компании с отделом продаж 3–20 человек.</p>
+      </div>
+      <div class="card" style="flex:1;">
+        <h2>Что</h2>
+        <p class="muted" style="font-size:16px;">AI-слой поверх CRM, не замена. Транскрибация → JSON → валидация → эскалация → scoring → аудит.</p>
+      </div>
+      <div class="grid-2" style="flex:1.1;">
+        <div class="card">
+          <h2>Пилот</h2>
+          <div class="stat gold" style="font-size:30px;">50 заявок</div>
+          <p class="muted">бесплатно, на ваших данных</p>
+        </div>
+        <div class="card">
+          <h2>Окупаемость</h2>
+          <div class="stat good" style="font-size:30px;">от 1 недели</div>
+          <p class="muted">при чеке 8 млн ₽</p>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="border-color:#c4b59a; justify-content:space-between;">
+      <div>
+        <h2>Контакты</h2>
+        <p style="font-size:22px; margin:10px 0 16px; font-family:'PT Serif', Georgia, serif;">Павел Кофф</p>
+        <p class="tiny">GitHub</p>
+        <p style="font-size:16px; color:#e0d0b4; margin-bottom:12px;">github.com/PavelKoff2025/OfferDesk</p>
+        <p class="tiny">Прод</p>
+        <p style="font-size:16px; color:#e0d0b4; margin-bottom:12px;">http://194.67.103.144:5001</p>
+        <p class="tiny">Release</p>
+        <p><span class="pill">v1.1.0</span></p>
+      </div>
+      <p class="quote" style="margin-top:12px; font-size:28px; text-align:center;">Спасибо! Вопросы?</p>
+    </div>
+  </div>
+  <footer class="bar"><span>Offer · Desk · Zerocoder · 02.10.2026</span><span>12 / 12</span></footer>
+</section>
+
+</body>
+</html>
