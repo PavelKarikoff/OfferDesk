@@ -113,17 +113,17 @@ def _latest_extraction_source(timeline: list | None) -> str:
     return ""
 
 
-def _parse_transcript_for_crm(transcript: str, overrides: dict | None = None) -> tuple[dict, object, str]:
-    """Пайплайн extraction → (CRM-словарь, DealExtraction, source).
+def _parse_transcript_for_crm(transcript: str, overrides: dict | None = None) -> tuple[dict, object, str, dict]:
+    """Пайплайн extraction → (CRM-словарь, DealExtraction, source, meta).
 
-    Эталон и статус считаются снаружи. extracted и source нужны для
+    Эталон и статус считаются снаружи. extracted, source и meta нужны для
     валидации, эскалации, lead scoring и аудита.
     """
     from extraction.crm_adapter import to_crm_dict
     from extraction.pipeline import extract
 
-    extracted, source = extract(transcript)
-    return to_crm_dict(extracted, overrides, source=source), extracted, source
+    extracted, source, meta = extract(transcript)
+    return to_crm_dict(extracted, overrides, source=source), extracted, source, meta
 
 
 def _missing_required_contacts(phone: str | None, email: str | None) -> list[str]:
@@ -307,8 +307,9 @@ def new_deal():
 
         extracted = None
         source = ""
+        meta: dict = {}
         try:
-            parsed_data, extracted, source = _parse_transcript_for_crm(transcript, overrides)
+            parsed_data, extracted, source, meta = _parse_transcript_for_crm(transcript, overrides)
             validation = etalon_match_score(parsed_data)
             logger.info(
                 "=== PARSED DATA ===\n%s\n=== ETALON %s%% missing=%s source=%s ===",
@@ -376,16 +377,24 @@ def new_deal():
             from extraction.audit.logger import log_extraction
 
             _validation = validate(extracted)
-            _escalation = escalate(extracted, _validation, raw_text=transcript)
+            _escalation = escalate(
+                extracted,
+                _validation,
+                raw_text=transcript,
+                source=source or "llm",
+                llm_error=(meta or {}).get("llm_error"),
+            )
             _lead = lead_score(extracted)
             log_extraction(
                 conn,
                 deal_id=deal_id,
                 extraction=extracted,
                 source=source,
+                input_text=transcript,
                 validation=_validation,
                 escalation=_escalation,
                 lead=_lead,
+                error_detail=(meta or {}).get("llm_error") or "",
             )
         conn.commit()
         conn.close()
@@ -607,9 +616,10 @@ def edit_deal(deal_id):
         extraction_source = ''
         _extracted = None
         _source = ''
+        _meta: dict = {}
         if transcript and transcript != (deal['transcript'] or ''):
             try:
-                reparsed, _extracted, _source = _parse_transcript_for_crm(transcript, {
+                reparsed, _extracted, _source, _meta = _parse_transcript_for_crm(transcript, {
                     'client_name': client_name,
                     'client_phone': client_phone,
                     'client_email': client_email,
@@ -719,16 +729,24 @@ def edit_deal(deal_id):
                 from extraction.audit.logger import log_extraction
 
                 _validation = validate(_extracted)
-                _escalation = escalate(_extracted, _validation, raw_text=transcript)
+                _escalation = escalate(
+                    _extracted,
+                    _validation,
+                    raw_text=transcript,
+                    source=_source or extraction_source or "regex",
+                    llm_error=(_meta or {}).get("llm_error"),
+                )
                 _lead = lead_score(_extracted)
                 log_extraction(
                     conn,
                     deal_id=deal_id,
                     extraction=_extracted,
                     source=_source or extraction_source or 'regex',
+                    input_text=transcript,
                     validation=_validation,
                     escalation=_escalation,
                     lead=_lead,
+                    error_detail=(_meta or {}).get("llm_error") or "",
                 )
             if normalize_status(deal.get('status')) != new_status:
                 log_action(

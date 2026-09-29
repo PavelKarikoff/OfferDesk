@@ -65,45 +65,90 @@ class TestEscalation(unittest.TestCase):
             deal={"budget_rub": 9000000, "financing": "ипотека", "start_date": "ноябрь 2026"},
             confidence={"overall": 0.9},
         )
-        self.assertIsNone(escalate(e, validate(e)))
+        self.assertIsNone(escalate(e, validate(e), source="llm"))
 
-    def test_low_confidence_does_not_escalate(self):
-        e = _mk(confidence={"overall": 0.3})
-        self.assertIsNone(escalate(e))
+    def test_llm_low_confidence_escalates(self):
+        e = _mk(
+            client={"phone": "+79161234567", "email": "a@b.ru"},
+            object={"plot": "12 соток", "area_m2": 150, "material": "газобетон"},
+            deal={"budget_rub": 9000000, "financing": "ипотека", "start_date": "ноябрь 2026"},
+            confidence={"overall": 0.3},
+        )
+        d = escalate(e, validate(e), source="llm")
+        self.assertIsNotNone(d)
+        self.assertTrue(any(r.startswith("low_confidence") for r in d.reasons))
+        self.assertEqual(d.target, "менеджер (нужны уточнения)")
+
+    def test_regex_low_confidence_does_not_escalate(self):
+        e = _mk(
+            client={"phone": "+79161234567", "email": "a@b.ru"},
+            object={"plot": "12 соток", "area_m2": 150, "material": "газобетон"},
+            deal={"budget_rub": 9000000, "financing": "ипотека", "start_date": "ноябрь 2026"},
+            confidence={"overall": 0.3},
+        )
+        self.assertIsNone(escalate(e, validate(e), source="regex"))
+
+    def test_insufficient_data_escalates(self):
+        e = _mk(confidence={"overall": 0.9})
+        d = escalate(e, source="llm")
+        self.assertIsNotNone(d)
+        self.assertIn("insufficient_data", d.reasons)
+        self.assertEqual(d.target, "менеджер (нужны уточнения)")
 
     def test_legal_risk_escalates(self):
         e = _mk(
             sales_signals={"objections": ["опыт суда с подрядчиком"]},
             confidence={"overall": 0.9},
         )
-        d = escalate(e)
+        d = escalate(e, source="llm")
         self.assertIsNotNone(d)
         self.assertIn("legal_risk", d.reasons)
         self.assertIn("юрист", d.target)
 
     def test_legal_risk_from_raw_text_when_objections_empty(self):
-        e = _mk(confidence={"overall": 0.3})
+        e = _mk(
+            client={"phone": "+79161234567", "email": "a@b.ru"},
+            object={"plot": "12 соток", "area_m2": 200, "material": "газобетон"},
+            deal={"budget_rub": 9000000, "financing": "ипотека", "start_date": "ноябрь 2026"},
+            confidence={"overall": 0.9},
+        )
         raw = (
             "Здравствуйте. Мы уже судились с прошлым подрядчиком, был ужасный опыт. "
             "Площадь 200, газобетон, телефон +7 999 555-44-33."
         )
-        d = escalate(e, raw_text=raw)
+        d = escalate(e, raw_text=raw, source="llm")
         self.assertIsNotNone(d)
         self.assertEqual(d.reasons, ["legal_risk"])
         self.assertEqual(d.target, "юрист + руководитель ОП")
 
     def test_negative_and_low_score_escalates(self):
-        e = _mk(sales_signals={"sentiment": "негативный"})
-        d = escalate(e)
+        e = _mk(sales_signals={"sentiment": "негативный"}, confidence={"overall": 0.9})
+        d = escalate(e, source="regex")
         self.assertIsNotNone(d)
+        self.assertIn("insufficient_data", d.reasons)
         self.assertTrue(any("negative_and_low_score" in r for r in d.reasons))
 
     def test_validation_failed_escalates(self):
         e = _mk(deal={"budget_rub": 2000000}, confidence={"overall": 0.9})
         v = validate(e)
-        d = escalate(e, v)
+        d = escalate(e, v, source="llm")
         self.assertIsNotNone(d)
         self.assertIn("validation_failed", d.reasons)
+        self.assertIn("insufficient_data", d.reasons)
+
+    def test_llm_failed_escalates_even_on_full_deal(self):
+        e = _mk(
+            client={"phone": "+79161234567", "email": "a@b.ru"},
+            object={"plot": "12 соток", "area_m2": 150, "material": "газобетон"},
+            deal={"budget_rub": 9000000, "financing": "ипотека", "start_date": "ноябрь 2026"},
+            confidence={"overall": 0.3},
+        )
+        d = escalate(
+            e, validate(e), source="regex", llm_error="ValidationError: bad json",
+        )
+        self.assertIsNotNone(d)
+        self.assertEqual(d.reasons, ["llm_failed"])
+        self.assertEqual(d.target, "менеджер (нужны уточнения)")
 
 
 if __name__ == "__main__":

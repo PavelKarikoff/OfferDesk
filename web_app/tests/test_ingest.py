@@ -89,7 +89,10 @@ class IngestEndpointTests(unittest.TestCase):
     def test_authorized_with_x_api_token(self):
         fake = _sample_extraction()
         with mock.patch.dict(os.environ, {"FLASK_API_TOKEN": "secret-token"}):
-            with mock.patch("routes_ingest.extract", return_value=(fake, "regex")):
+            with mock.patch(
+                "routes_ingest.extract",
+                return_value=(fake, "regex", {"llm_error": None, "llm_attempted": False}),
+            ):
                 r = self.client.post(
                     "/ingest",
                     json={"transcript": "Здравствуйте, меня зовут Сергей"},
@@ -116,7 +119,10 @@ class IngestEndpointTests(unittest.TestCase):
 
     def test_pipeline_json_and_audit_log(self):
         fake = _sample_extraction()
-        with mock.patch("routes_ingest.extract", return_value=(fake, "llm")):
+        with mock.patch(
+            "routes_ingest.extract",
+            return_value=(fake, "llm", {"llm_error": None, "llm_attempted": True}),
+        ):
             r = self.client.post(
                 "/ingest",
                 json={"transcript": "Клиент Сергей, бюджет 8 млн, участок есть"},
@@ -134,7 +140,8 @@ class IngestEndpointTests(unittest.TestCase):
         conn = sqlite3.connect("deals.db")
         conn.row_factory = sqlite3.Row
         row = conn.execute(
-            "SELECT deal_id, source, lead_grade, etalon_score FROM audit_log"
+            "SELECT deal_id, source, lead_grade, etalon_score, "
+            "status, input_text, result_json FROM audit_log"
         ).fetchone()
         conn.close()
         self.assertIsNotNone(row)
@@ -142,6 +149,74 @@ class IngestEndpointTests(unittest.TestCase):
         self.assertEqual(row["source"], "llm")
         self.assertEqual(row["etalon_score"], 100)
         self.assertEqual(row["lead_grade"], body["lead_grade"])
+        self.assertEqual(row["status"], "success")
+        self.assertIn("Сергей", row["input_text"])
+        self.assertIn("Сергей", row["result_json"])
+
+    def test_extract_failure_returns_safe_envelope(self):
+        with mock.patch(
+            "routes_ingest.extract",
+            side_effect=ValueError("Пустая транскрибация"),
+        ):
+            r = self.client.post(
+                "/ingest",
+                json={"transcript": "сломанный разбор заявки"},
+            )
+        self.assertEqual(r.status_code, 200)
+        body = r.get_json()
+        self.assertEqual(body["source"], "error")
+        self.assertIn("ValueError", body["error"])
+        action = body["action"]
+        self.assertEqual(action["intent"], "escalate")
+        self.assertTrue(action["escalate"])
+        self.assertEqual(action["confidence"], "low")
+        self.assertEqual(action["priority"], "high")
+        self.assertIn("оператору", action["next_action"])
+        self.assertEqual(action["fields"], {})
+
+        conn = sqlite3.connect("deals.db")
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT status, source, input_text, error_detail, result_json FROM audit_log"
+        ).fetchone()
+        conn.close()
+        self.assertIsNotNone(row)
+        self.assertEqual(row["status"], "error")
+        self.assertEqual(row["source"], "error")
+        self.assertEqual(row["input_text"], "сломанный разбор заявки")
+        self.assertIn("ValueError", row["error_detail"])
+        self.assertIsNone(row["result_json"])
+
+    def test_llm_fallback_escalates_and_keeps_result(self):
+        fake = _sample_extraction()
+        with mock.patch(
+            "routes_ingest.extract",
+            return_value=(
+                fake,
+                "regex",
+                {"llm_error": "ValidationError: schema", "llm_attempted": True},
+            ),
+        ):
+            r = self.client.post(
+                "/ingest",
+                json={"transcript": "Клиент Сергей, бюджет 8 млн"},
+            )
+        self.assertEqual(r.status_code, 200)
+        action = r.get_json()["action"]
+        self.assertTrue(action["escalate"])
+        self.assertIn("llm_failed", action["meta"]["reasons"])
+        self.assertEqual(action["meta"]["llm_error"], "ValidationError: schema")
+        self.assertIn("модель не разобрала", action["next_action"])
+
+        conn = sqlite3.connect("deals.db")
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT status, error_detail, result_json FROM audit_log"
+        ).fetchone()
+        conn.close()
+        self.assertEqual(row["status"], "escalated")
+        self.assertIn("ValidationError", row["error_detail"])
+        self.assertIn("Сергей", row["result_json"])
 
 
 if __name__ == "__main__":
