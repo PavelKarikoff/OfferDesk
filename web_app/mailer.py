@@ -52,7 +52,7 @@ def send_kp_email(
     kp_number = meta.get("kp_number", "КП")
     manager = manager_name or "Отдел продаж"
     timber = meta.get("kp_kind") == "timber"
-    company = meta.get("company_name") or ("Дом Форест" if timber else "Дом Мастер")
+    company = meta.get("company_name") or ("Дома из клееного бруса" if timber else "Дом Мастер")
 
     if timber:
         subject = f"Коммерческое предложение «{company}» — {kp_number}"

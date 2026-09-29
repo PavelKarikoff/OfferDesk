@@ -53,7 +53,7 @@ def load_timber_kp_template() -> str:
 
 
 def load_timber_company_forest() -> str:
-    """Карточка компании «Дом Форест» для переменных шаблона."""
+    """Карточка компании контура клееного бруса для переменных шаблона."""
     return load_knowledge_doc("timber/company_forest.md")
 
 

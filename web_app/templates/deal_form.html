@@ -108,7 +108,7 @@
             <option value="{{ p.name }}" {% if deal and deal.catalog_project == p.name %}selected{% endif %}>{{ catalog_label(p) if catalog_label is defined else p.name }}</option>
             {% endfor %}
         </select>
-        <p class="hint">Каталог «Дом Форест»: <a href="https://dom-forest.ru/katalog/doma-iz-kleenogo-brusa/" target="_blank" rel="noopener">dom-forest.ru/katalog</a></p>
+        <p class="hint">Каталог домов из клееного бруса: проекты выбираются из списка ниже</p>
 
         <label>Источник финансирования</label>
         <input type="text" name="funding_source" value="{{ deal.funding_source if deal else '' }}" placeholder="свои / ипотека / маткапитал">

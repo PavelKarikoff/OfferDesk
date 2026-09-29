@@ -284,7 +284,7 @@ class TranscriptParser:
                     if candidate and any(k in candidate.lower() for k in material_keywords):
                         result["material"] = candidate
 
-        # --- Проект каталога «Дом Форест» ---
+        # --- Проект каталога (клееный брус) ---
         try:
             from utils.timber_catalog import match_catalog_project
 

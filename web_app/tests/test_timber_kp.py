@@ -1,4 +1,4 @@
-"""Тесты шаблона КП домов из клееного бруса (контур «Дом Форест»)."""
+"""Тесты шаблона КП домов из клееного бруса."""
 
 from __future__ import annotations
 
@@ -38,8 +38,8 @@ class TimberKpTests(unittest.TestCase):
         self.assertIn("Не использовать", standards)
         self.assertIn("extends \"base_kp.html\"", template)
         self.assertIn("company_legal", template)
-        self.assertIn("Дом Форест", company)
-        self.assertIn("dom-forest.ru", company)
+        self.assertIn("Дома из клееного бруса", company)
+        self.assertIn("клееного бруса", company)
 
     def test_protocol_19_08_parses_to_timber_kp(self):
         from transcript_parser_local import parse_transcript_local
@@ -70,7 +70,7 @@ class TimberKpTests(unittest.TestCase):
             protocol_number="19/08",
         )
         self.assertEqual(ctx["grand_total"], 13_145_075)
-        self.assertEqual(ctx["company_name"], "Дом Форест")
+        self.assertEqual(ctx["company_name"], "Дома из клееного бруса")
 
     def test_sirius_totals_match_mock(self):
         subtotal, overhead, grand = calc_totals(SIRIUS_STANDARD_SECTIONS, OVERHEAD_PCT_DEFAULT)
@@ -96,7 +96,7 @@ class TimberKpTests(unittest.TestCase):
     def test_html_renders_forest_not_dommaster_rate(self):
         ctx = build_timber_kp_context(client_name="Тест", project_name="Сириус 2.0")
         html = render_html(ctx, template_name="kp_timber_template.html")
-        self.assertIn("Дом Форест", html)
+        self.assertIn("Дома из клееного бруса", html)
         self.assertIn("клееного бруса", html)
         self.assertIn("13 145 075", html)
         self.assertIn("Сириус 2.0", html)
