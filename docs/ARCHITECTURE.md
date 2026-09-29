@@ -71,7 +71,12 @@ LLM недоступен → `APIConnectionError` → regex fallback → про�
 | `llm_failed` | LLM упал (сеть / невалидный JSON / схема), regex-fallback | эскалация → менеджер (нужны уточнения) |
 | `validation_failed` | `validation.ok=False` | эскалация → руководитель ОП |
 
-`low_confidence` срабатывает только для `source=llm`. Regex всегда даёт `0.3` — это шум канала, не эскалация. `source=merged` по confidence не эскалирует; мало данных (`etalon < 30`) эскалирует независимо от канала.
+`low_confidence` срабатывает только для `source=llm`. Regex всегда даёт `0.3` —
+метка канала, не оценка качества: иначе каждая fallback-сделка уходила бы к
+человеку. Это **сознательное отклонение** от чеклиста (`confidence=low → escalate`).
+В проде regex в 71% случаев извлекает корректные поля. Нехватка данных ловится
+отдельно: `etalon < 30` → `insufficient_data` (мягкая эскалация). Подробнее —
+`docs/KNOWN_ISSUES.md`.
 
 ## Lead scoring
 
@@ -143,7 +148,7 @@ Grade: A ≥ 0.7, B ≥ 0.4, C < 0.4.
 - прокси OpenAI недоступен на момент сдачи → LLM-метрики в roadmap;
 - `transcript_parser_local` теряет дробную часть бюджета («6.5 млн» → «5 млн»);
 - методика метрик исправлена (TP только при `exp == got`);
-- `low_confidence` эскалирует только LLM (`source=llm`), не regex;
+- `low_confidence` эскалирует только LLM (`source=llm`), не regex — сознательное отклонение, см. KNOWN_ISSUES;
 - черновик ответа клиенту при `temperature=0.7` не вынесен: `utils.chat_json` фиксирован на `0.2`. Фиктивный второй шаг не делаем — см. roadmap ниже.
 
 ## Roadmap
