@@ -18,6 +18,8 @@ flowchart TD
     V --> CRM[crm_adapter -> CRM-словарь]
     E --> CRM
     S --> CRM
+    CRM --> ACT[actions.build_envelope]
+    ACT --> IN[POST /ingest: crm + action]
     CRM --> A[audit_log]
     A --> DB[(SQLite deals.db)]
     CRM --> K[КП: PDF + email/Telegram]
@@ -30,6 +32,7 @@ flowchart TD
 | Схема | `schema.py` | Pydantic `DealExtraction`, `etalon_score()`, `required_filled()` |
 | LLM | `llm_extractor.py` | Вызов `utils.chat_json`, structured output, промпт v1/v2 |
 | Fallback | `regex_fallback.py` | Обёртка над `transcript_parser_local`, маппинг в `DealExtraction` |
+| Actions | `actions.py` | Формальный inbox-контракт (`intent`/`priority`/`next_action`) поверх DealExtraction |
 
 ## Логика pipeline
 
@@ -79,6 +82,40 @@ LLM недоступен → `APIConnectionError` → regex fallback → про�
 
 Grade: A ≥ 0.7, B ≥ 0.4, C < 0.4.
 
+## Формальный inbox-контракт
+
+`POST /ingest` отдаёт два блока: CRM-проекцию (`crm`, `extraction`, scoring) и `action` из `extraction/actions.py`. Envelope считается **кодом** поверх `DealExtraction` + `validate()` + `escalate()` + `score()`. Модель не решает `priority` и `escalate`.
+
+| Поле | Тип | Значения |
+|---|---|---|
+| `intent` | enum | `quote_request` / `qualify` / `escalate` / `reject` |
+| `summary` | str | короткая сводка только из заполненных полей, без выдумок |
+| `priority` | enum | `low` / `medium` / `high` |
+| `next_action` | str | конкретное действие для менеджера |
+| `fields` | object | CRM-проекция извлечённых данных |
+| `confidence` | enum | `high` / `medium` / `low` (не число; regex всегда `low`) |
+| `escalate` | bool | `true` / `false` |
+| `meta` | object | `source`, `etalon_score`, `lead_grade`, `lead_score`, `reasons` |
+
+| `intent` | Когда |
+|---|---|
+| `quote_request` | эталон ≥ 80%, нет эскалации |
+| `qualify` | не хватает полей |
+| `escalate` | юр. риск, негатив + низкий score, провал валидации (кроме «только бюджет») |
+| `reject` | единственная жёсткая проблема — бюджет < 3 млн |
+
+| `priority` | Когда |
+|---|---|
+| `high` | есть эскалация **или** лид A |
+| `medium` | лид B, без эскалации |
+| `low` | лид C, без эскалации |
+
+| `confidence` | Когда |
+|---|---|
+| `low` | `source=regex` **или** `overall` < 0.5 |
+| `medium` | LLM/merged и `0.5 ≤ overall < 0.75` |
+| `high` | LLM/merged и `overall ≥ 0.75` |
+
 ## Аудит
 
 Таблица `audit_log` в `deals.db`:
@@ -100,13 +137,19 @@ Grade: A ≥ 0.7, B ≥ 0.4, C < 0.4.
 - прокси OpenAI недоступен на момент сдачи → LLM-метрики в roadmap;
 - `transcript_parser_local` теряет дробную часть бюджета («6.5 млн» → «5 млн»);
 - методика метрик исправлена (TP только при `exp == got`);
-- `low_confidence` убран из триггеров эскалации.
+- `low_confidence` убран из триггеров эскалации;
+- черновик ответа клиенту при `temperature=0.7` не вынесен: `utils.chat_json` фиксирован на `0.2`. Фиктивный второй шаг не делаем — см. roadmap ниже.
+
+## Roadmap
+
+- Вынести черновик ответа клиенту (`extraction/draft_reply.py`) в отдельный вызов LLM с `temperature=0.7`. Для этого нужен `chat_json(..., temperature=...)`; сейчас `0.2` — правильная температура для извлечения, не для текста.
 
 ## Тесты
 
 - `tests/test_extraction.py` — 25 тестов (схема, хелперы, regex, pipeline).
 - `tests/test_validation.py` — 11 тестов (rules + escalation).
 - `tests/test_scoring.py` — 5 тестов (A/B/C, факторы).
+- `tests/test_actions.py` — inbox-контракт (intent / priority / confidence / escalate).
 - `tests/test_extraction_quality.py` — пороговый тест по golden set.
 - `web_app/tests/` — 51 существующих тестов.
 
@@ -114,7 +157,8 @@ Grade: A ≥ 0.7, B ≥ 0.4, C < 0.4.
 
 ```bash
 python3 -m unittest tests.test_extraction tests.test_validation \
-                  tests.test_scoring tests.test_extraction_quality -v
+                  tests.test_scoring tests.test_actions \
+                  tests.test_extraction_quality -v
 cd web_app && PYTHONPATH=.. python3 -m unittest discover -s tests -v
 ```
 

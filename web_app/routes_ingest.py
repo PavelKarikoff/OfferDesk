@@ -2,7 +2,11 @@
 
 Отдельный от CRM-формы endpoint: принимает JSON с текстом заявки,
 прогоняет через extraction.pipeline.extract, валидирует, эскалирует,
-считает lead scoring, пишет в audit_log. Возвращает JSON-результат.
+считает lead scoring, пишет в audit_log.
+
+Ответ — два блока: CRM-контракт (`extraction`, `crm`, scoring) и
+формальный inbox-контракт (`action`: intent / summary / priority /
+next_action / fields / confidence / escalate).
 
 Пример:
     curl -X POST http://localhost:5001/ingest \\
@@ -23,7 +27,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from extraction.audit.logger import log_extraction
+from extraction.actions import build_envelope
+from extraction.audit.logger import ensure_table, log_extraction
 from extraction.crm_adapter import to_crm_dict
 from extraction.pipeline import extract
 from extraction.scoring.lead_score import score as lead_score
@@ -78,10 +83,19 @@ def ingest():
 
     # CRM-словарь для ответа (совместим с форматом сделки)
     crm_data = to_crm_dict(extracted, overrides=None, source=source)
+    envelope = build_envelope(
+        extracted,
+        validation,
+        escalation,
+        lead,
+        source=source,
+        fields=crm_data,
+    )
 
     # Аудит (deal_id=None, потому что сделка ещё не создана — ingest публичный)
     try:
         conn = connect_db()
+        ensure_table(conn)
         log_extraction(
             conn,
             deal_id=None,
@@ -96,6 +110,7 @@ def ingest():
         logger.exception("ingest: audit_log write failed")
 
     return jsonify({
+        # старые поля (backward compatible)
         "source": source,
         "etalon_score": extracted.etalon_score(),
         "lead_grade": lead.grade,
@@ -104,4 +119,6 @@ def ingest():
         "escalation": escalation.to_dict() if escalation else None,
         "extraction": extracted.model_dump(),
         "crm": crm_data,
+        # новый блок — формальный контракт чеклиста
+        "action": envelope.to_dict(),
     }), 200
