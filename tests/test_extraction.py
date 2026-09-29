@@ -51,6 +51,16 @@ class TestSchema(unittest.TestCase):
         })
         self.assertTrue(all(v is False for v in filled.values()))
 
+    def test_material_null_becomes_default(self):
+        e = DealExtraction.model_validate({"object": {"material": None}})
+        self.assertEqual(e.object.material, "не указано")
+        self.assertFalse(e.required_filled()["material"])
+
+    def test_financing_null_becomes_default(self):
+        e = DealExtraction.model_validate({"deal": {"financing": None}})
+        self.assertEqual(e.deal.financing, "не указано")
+        self.assertFalse(e.required_filled()["financing"])
+
 
 class TestHelpers(unittest.TestCase):
     """Хелперы regex_fallback: _to_float, _normalize_material, _normalize_financing, _pick."""

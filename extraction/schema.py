@@ -26,12 +26,26 @@ class Object(BaseModel):
     style: Optional[str] = None
     catalog_project: Optional[str] = None
 
+    @field_validator("material", mode="before")
+    @classmethod
+    def _material_none(cls, v):
+        if v in (None, ""):
+            return "не указано"
+        return v
+
 
 class Deal(BaseModel):
     budget_rub: Optional[float] = None
     financing: Financing = "не указано"
     start_date: Optional[str] = None
     urgency: Optional[Literal["высокая", "средняя", "низкая"]] = None
+
+    @field_validator("financing", mode="before")
+    @classmethod
+    def _financing_none(cls, v):
+        if v in (None, ""):
+            return "не указано"
+        return v
 
 
 class SalesSignals(BaseModel):

@@ -49,6 +49,20 @@ def _get(o, p):
     return o
 
 
+class TestPlotNorm(unittest.TestCase):
+    def test_vague_plot_equals_null(self):
+        for raw in (None, "", "есть", "участок есть", "есть участок", "да", "нет"):
+            with self.subTest(raw=raw):
+                self.assertIsNone(_norm_for_field("plot", raw))
+
+    def test_sotki_kept(self):
+        self.assertEqual(
+            _norm_for_field("plot", "12 соток в Московской области"),
+            "12 соток",
+        )
+        self.assertEqual(_norm_for_field("plot", "участок есть, 10 соток"), "10 соток")
+
+
 class TestExtractionQuality(unittest.TestCase):
     def test_regex_baseline(self):
         stats = {n: {"tp": 0, "fp": 0, "fn": 0} for n, _ in FIELDS}
