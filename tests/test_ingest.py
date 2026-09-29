@@ -61,6 +61,12 @@ class TestIngest(unittest.TestCase):
         self.assertIn("source", data)
         self.assertIn("lead_grade", data)
         self.assertIn("extraction", data)
+        self.assertIn("action", data)
+        for key in (
+            "intent", "summary", "priority", "next_action",
+            "fields", "confidence", "escalate",
+        ):
+            self.assertIn(key, data["action"])
 
     def test_with_token_when_set(self):
         # Если FLASK_API_TOKEN задан, без заголовка — 401

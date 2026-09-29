@@ -52,6 +52,20 @@ def main() -> int:
     print("etalon_score:", result["etalon_score"])
     print("lead_grade:", result["lead_grade"])
     print("escalation:", result["escalation"])
+    print()
+    print("action:")
+    action = result["action"]
+    for k in (
+        "intent",
+        "summary",
+        "priority",
+        "next_action",
+        "confidence",
+        "escalate",
+        "meta",
+    ):
+        if k in action:
+            print(f"  {k}: {action[k]}")
     return 0
 
 
