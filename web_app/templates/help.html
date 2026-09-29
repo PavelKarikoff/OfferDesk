@@ -14,19 +14,32 @@
             <div class="card-header bg-white"><h5 class="mb-0">Быстрый сценарий</h5></div>
             <div class="card-body">
                 <ol class="mb-0">
-                    <li><strong>Новая сделка</strong> — вставьте протокол звонка.</li>
-                    <li>Смотрите <strong>%</strong> заполнения эталона.</li>
+                    <li><strong>Новая сделка</strong> — вставьте протокол или файл (.txt, .docx, .pdf).</li>
+                    <li>Смотрите <strong>%</strong>, грейд лида <strong>A/B/C</strong> и бейдж <strong>эскалация</strong>.</li>
                     <li>Если &lt; 80% — откройте «Недостающие данные» и доспросите клиента.</li>
-                    <li>Вкладка <strong>КП</strong> → Сгенерировать → Утвердить.</li>
-                    <li>Отправьте клиенту: <strong>Email</strong> (основной) или <strong>Telegram</strong> (после привязки).</li>
+                    <li>Вкладка <strong>КП</strong> → Сгенерировать → Утвердить. Клиенту только утверждённое.</li>
+                    <li>Отправьте: <strong>Email</strong> (основной) или <strong>Telegram</strong> (после привязки).</li>
                 </ol>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white"><h5 class="mb-0">Бейджи на карточке</h5></div>
+            <div class="card-body">
+                <p class="small text-muted">Справа в блоке «Заполнение данных».</p>
+                <ul class="mb-3">
+                    <li><strong>LLM</strong> — разобрала модель. <strong>regex</strong> — запасной разбор, сверьте цифры. <strong>LLM + regex</strong> — смешанный.</li>
+                    <li><strong>Лид A / B / C</strong> — приоритет очереди, не разрешение слать КП. Порог КП по-прежнему %.</li>
+                    <li><strong>Эскалация</strong> — наведите курсор: причина и кому передать. Суд / юрист / угроза — <strong>не слать КП</strong>, к руководителю. Мало данных — доспросить.</li>
+                </ul>
+                <p class="mb-0 small text-muted">Сделка без действий больше 3 дней — система напомнит. Это не штраф.</p>
             </div>
         </div>
 
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-white"><h5 class="mb-0">Обязательные поля (эталон)</h5></div>
             <div class="card-body">
-                <p class="text-muted">Для генерации КП нужно ≥ <strong>{{ kp_threshold }}%</strong>.</p>
+                <p class="text-muted">Для генерации КП нужно ≥ <strong>{{ kp_threshold }}%</strong> (минимум 6 из 7 полей).</p>
                 <ul>
                     <li>Телефон</li>
                     <li>Email (основной канал отправки)</li>
@@ -35,11 +48,12 @@
                     <li>Материал стен</li>
                     <li>Сроки старта</li>
                     <li>Финансирование</li>
-                    <li>Для клееного бруса — <strong>проект каталога</strong> («Дом Форест»: Сириус 2.0, Альба…)</li>
+                    <li>Для клееного бруса — <strong>проект каталога</strong> («Дом Форест»: Сириус 2.0, Альба…). Без проекта КП не собрать.</li>
                 </ul>
                 <p class="mb-0 small text-muted">
                     Газобетон «Дом-Мастер»: стоимость ТК = площадь × {{ price_per_m2_fmt }}&nbsp;₽/м².
-                    Клееный брус: смета по этапам, ставка м² не используется. Telegram для % не обязателен.
+                    Клееный брус «Дом Форест»: смета по этапам + 5%, ставка м² не используется.
+                    Telegram и бюджет клиента для % не обязательны.
                 </p>
             </div>
         </div>
@@ -51,7 +65,7 @@
                     <table class="table table-sm mb-0">
                         <thead><tr><th>Статус</th><th>Когда</th></tr></thead>
                         <tbody>
-                            <tr><td>Новая</td><td>Только создали</td></tr>
+                            <tr><td>Новая</td><td>Только создали, данных хватает на КП</td></tr>
                             <tr><td>Неполные данные</td><td>Ждём уточнений</td></tr>
                             <tr><td>КП готово</td><td>Есть черновик / утверждённое КП</td></tr>
                             <tr><td>КП отправлено</td><td>Ушло клиенту</td></tr>
@@ -69,7 +83,9 @@
             <div class="card-body">
                 <ul class="mb-0">
                     <li>Телефон и email верные</li>
-                    <li>Площадь и сумма ТК адекватны</li>
+                    <li>Нет юр. эскалации / бюджет &lt; 3 млн без РОП</li>
+                    <li>Материал верный: газобетон или брус + проект</li>
+                    <li>Площадь и сумма в PDF адекватны</li>
                     <li>КП утверждено (не черновик)</li>
                     <li>Выбран канал отправки</li>
                     <li>Статус → «КП отправлено»</li>
@@ -87,7 +103,7 @@
                     <li>Клиент открывает и жмёт Start.</li>
                     <li>В карточке появится «привязан».</li>
                 </ol>
-                <p class="mb-0 small text-muted">Канал менеджера: <code>@stroyka_KP_bot</code></p>
+                <p class="mb-0 small text-muted">Рабочий стол — браузер. Бот <code>@stroyka_KP_bot</code> — канал доставки, не ввод сделок.</p>
             </div>
         </div>
 
@@ -97,7 +113,7 @@
                 <ol class="mb-2">
                     <li>Обновите страницу (Ctrl+Shift+R).</li>
                     <li>Повторите через минуту.</li>
-                    <li>Напишите администратору: № сделки + что нажимали.</li>
+                    <li>Администратору: № сделки, что нажимали, бейдж (LLM / regex / эскалация).</li>
                 </ol>
                 <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('dashboard') }}">На дашборд</a>
             </div>
