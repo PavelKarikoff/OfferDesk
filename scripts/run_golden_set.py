@@ -34,6 +34,30 @@ FIELDS = [
     ("sentiment", "sales_signals.sentiment"),
 ]
 
+# Поля эталона КП (те же 7, что DealExtraction.required_filled).
+ETALON_FIELDS = [
+    ("phone", "client.phone"),
+    ("email", "client.email"),
+    ("plot", "object.plot"),
+    ("area_m2", "object.area_m2"),
+    ("material", "object.material"),
+    ("start_date", "deal.start_date"),
+    ("financing", "deal.financing"),
+]
+
+
+def _semantic_etalon_score(extraction: DealExtraction) -> int:
+    """% эталона после той же нормализации, что у метрик полей.
+
+    «участок есть» без соток = пустой plot, как в эталоне 08.
+    """
+    filled = sum(
+        _norm_for_field(name, _get(extraction, path)) is not None
+        for name, path in ETALON_FIELDS
+    )
+    return int(round(100 * filled / len(ETALON_FIELDS)))
+
+
 # Regex не извлекает тон и тональность — дефолты схемы не должны попадать в метрики.
 LLM_ONLY_FIELDS = {"tone", "sentiment"}
 
@@ -56,19 +80,28 @@ def _norm(v):
 import re as _re
 
 
+# «есть» / «нет» без соток — не участок для метрики (как plot: null в эталоне).
+_PLOT_NO_DETAIL = frozenset({
+    "есть", "есть участок", "участок есть", "да",
+    "нет", "участка нет", "нет участка",
+})
+
+
 def _norm_for_field(name: str, v):
-    """Для plot — сравнение по числу соток; для остальных — обычная нормализация.
+    """Для plot — сравнение по конкретике (сотки); для остальных — _norm.
 
     '12 соток в Московской области' ≈ '12 соток, Московская область' → '12 соток'
+    'участок есть' / 'есть' / пусто → None
     """
     if name != "plot":
         return _norm(v)
     if not v:
         return None
-    m = _re.search(r"(\d+(?:[.,]\d+)?)\s*сот", str(v).lower())
-    if m:
-        return f"{m.group(1)} соток"
-    return _norm(v)
+    s = str(v).lower().strip().rstrip(".,;!")
+    if s in _PLOT_NO_DETAIL:
+        return None
+    m = _re.search(r"(\d+(?:[.,]\d+)?)\s*сот", s)
+    return f"{m.group(1)} соток" if m else _norm(v)
 
 
 def main() -> int:
@@ -123,7 +156,7 @@ def main() -> int:
                 stats[name]["fp"] += 1
                 stats[name]["fn"] += 1
 
-        if pred.etalon_score() == expected.etalon_score():
+        if _semantic_etalon_score(pred) == _semantic_etalon_score(expected):
             exact_match += 1
 
     lines = [
