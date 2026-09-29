@@ -133,16 +133,20 @@ class TestPipeline(unittest.TestCase):
             "extraction.pipeline.extract_with_llm",
             side_effect=AssertionError("LLM не должен вызываться при force_regex=True"),
         ):
-            _, src = extract("любой текст", force_regex=True)
+            _, src, meta = extract("любой текст", force_regex=True)
         self.assertEqual(src, "regex")
+        self.assertFalse(meta["llm_attempted"])
+        self.assertIsNone(meta["llm_error"])
 
     def test_llm_error_falls_back_to_regex(self):
         with patch(
             "extraction.pipeline.extract_with_llm",
             side_effect=ConnectionError("нет сети"),
         ):
-            _, src = extract("любой текст")
+            _, src, meta = extract("любой текст")
         self.assertEqual(src, "regex")
+        self.assertTrue(meta["llm_attempted"])
+        self.assertIn("ConnectionError", meta["llm_error"])
 
     def test_llm_high_confidence_uses_llm(self):
         fake_llm = DealExtraction.model_validate({
@@ -150,9 +154,11 @@ class TestPipeline(unittest.TestCase):
             "confidence": {"overall": 0.9},
         })
         with patch("extraction.pipeline.extract_with_llm", return_value=fake_llm):
-            r, src = extract("любой текст")
+            r, src, meta = extract("любой текст")
         self.assertEqual(src, "llm")
         self.assertEqual(r.client.phone, "+79991112233")
+        self.assertTrue(meta["llm_attempted"])
+        self.assertIsNone(meta["llm_error"])
 
     def test_merge_fills_empty_fields(self):
         # LLM с низким confidence и пустыми полями → merge с реальным regex
@@ -162,7 +168,7 @@ class TestPipeline(unittest.TestCase):
             "sales_signals": {"tone": "сомневающийся"},
         })
         with patch("extraction.pipeline.extract_with_llm", return_value=fake_llm):
-            r, src = extract(text)
+            r, src, meta = extract(text)
         self.assertEqual(src, "merged")
         # Поля, которых не было у LLM, добраны из regex
         self.assertIsNotNone(r.client.phone)
@@ -170,6 +176,8 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(r.sales_signals.tone, "сомневающийся")
         # confidence тоже остался от LLM (не занижен до 0.3)
         self.assertEqual(r.confidence.overall, 0.2)
+        self.assertTrue(meta["llm_attempted"])
+        self.assertIsNone(meta["llm_error"])
 
 
 class TestCrmAdapter(unittest.TestCase):

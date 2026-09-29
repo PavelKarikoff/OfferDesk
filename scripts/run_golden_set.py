@@ -98,7 +98,7 @@ def main() -> int:
         )
 
         try:
-            pred, source = extract(transcript, force_regex=args.force_regex)
+            pred, source, _ = extract(transcript, force_regex=args.force_regex)
         except Exception as e:
             print(f"FAIL {txt_path.name}: {type(e).__name__}: {e}")
             continue

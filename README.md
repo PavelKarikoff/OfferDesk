@@ -95,9 +95,11 @@
 
 - бюджет ниже порога или провал валидации → руководитель ОП;
 - суд / юрид / угроза в objections **или в сыром тексте** → юрист + руководитель ОП;
-- негатив + низкий `etalon_score` → руководитель ОП.
+- негатив + низкий `etalon_score` → руководитель ОП;
+- `source=llm` и `confidence.overall` < 0.6 → менеджер (нужны уточнения);
+- `etalon_score` < 30 → менеджер (нужны уточнения).
 
-`low_confidence` **не** эскалирует: regex всегда даёт 0.3, иначе эскалировалась бы каждая fallback-сделка.
+`low_confidence` **не** эскалирует regex: канал всегда даёт 0.3, иначе эскалировалась бы каждая fallback-сделка.
 
 **Аудит** (`extraction/audit/logger.py` → таблица `audit_log`): вход, `source` (llm / regex / merged), JSON квалификации, `etalon_score`, `lead_grade`, `escalation_json`. Снимок прода: [`prod_audit_log.png`](docs/screenshots/prod_audit_log.png). Дашборд precision/recall в реальном времени — в roadmap; baseline уже есть по golden set.
 

@@ -59,7 +59,7 @@ class TestExtractionQuality(unittest.TestCase):
             if not jf.exists():
                 continue
             exp = DealExtraction.model_validate_json(jf.read_text(encoding="utf-8"))
-            pred, _ = extract(txt.read_text(encoding="utf-8"), force_regex=True)
+            pred, *_ = extract(txt.read_text(encoding="utf-8"), force_regex=True)
             total += 1
             for name, path in FIELDS:
                 e = _norm_for_field(name, _get(exp, path))

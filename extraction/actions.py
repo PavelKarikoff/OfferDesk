@@ -17,7 +17,7 @@ from .validation.rules import MIN_BUDGET, ValidationResult
 
 INTENT_QUOTE = "quote_request"  # запрос КП, всё есть
 INTENT_QUALIFY = "qualify"  # не хватает данных — квалифицировать
-INTENT_ESCALATE = "escalate"  # суд/негатив/провал валидации
+INTENT_ESCALATE = "escalate"  # суд / провал валидации / низкая уверенность / падение LLM
 INTENT_REJECT = "reject"  # бюджет ниже минимума и не тянет
 
 CHECKLIST_KEYS = (
@@ -47,6 +47,8 @@ def _budget_only_below_min(
         return False
     if escalation and "legal_risk" in escalation.reasons:
         return False
+    if escalation and "llm_failed" in escalation.reasons:
+        return False
     other = [i for i in validation.issues if not i.startswith("budget_below_min")]
     return not other
 
@@ -56,14 +58,24 @@ def _intent(
     validation: ValidationResult,
     escalation: EscalationDecision | None,
 ) -> str:
-    if escalation and "legal_risk" in escalation.reasons:
-        return INTENT_ESCALATE
-    if _budget_only_below_min(extraction, validation, escalation):
-        return INTENT_REJECT
-    if escalation or not validation.ok:
+    if escalation:
+        if "legal_risk" in escalation.reasons:
+            return INTENT_ESCALATE
+        if _budget_only_below_min(extraction, validation, escalation):
+            return INTENT_REJECT
+        if "validation_failed" in escalation.reasons:
+            return INTENT_ESCALATE
+        if any(r.startswith("low_confidence") for r in escalation.reasons):
+            return INTENT_ESCALATE
+        if "llm_failed" in escalation.reasons:
+            return INTENT_ESCALATE
+        if "insufficient_data" in escalation.reasons:
+            return INTENT_QUALIFY  # мягкая эскалация — уточнить, не «жёстко эскалировать»
         return INTENT_ESCALATE
     if extraction.etalon_score() >= 80:
         return INTENT_QUOTE
+    if extraction.deal.budget_rub and extraction.deal.budget_rub < MIN_BUDGET:
+        return INTENT_REJECT
     return INTENT_QUALIFY
 
 
@@ -110,9 +122,15 @@ def _next_action(
     if escalation:
         if "legal_risk" in escalation.reasons:
             return "Передать юристу и руководителю ОП — юридический риск"
+        if any(r.startswith("low_confidence") for r in escalation.reasons):
+            return "Передать менеджеру — низкая уверенность модели, нужны уточнения"
+        if "llm_failed" in escalation.reasons:
+            return "Передать менеджеру — модель не разобрала заявку, нужны уточнения"
+        if "insufficient_data" in escalation.reasons:
+            return "Передать менеджеру — мало данных, уточнить поля"
         if "validation_failed" in escalation.reasons:
             return "Передать руководителю ОП — провал валидации"
-        return f"Передать {escalation.target} — {', '.join(escalation.reasons)}"
+        return f"Передать {escalation.target}"
     if extraction.etalon_score() >= 80:
         return "Сгенерировать КП и отправить клиенту"
     if extraction.missing_fields:
@@ -166,8 +184,10 @@ def build_envelope(
     *,
     source: str,
     fields: dict | None = None,
+    pipeline_meta: dict | None = None,
 ) -> ActionEnvelope:
     """Строит формальный inbox-контракт из результата pipeline."""
+    pipe = pipeline_meta or {}
     return ActionEnvelope(
         intent=_intent(extraction, validation, escalation),
         summary=_summary(extraction, lead),
@@ -182,5 +202,7 @@ def build_envelope(
             "lead_grade": lead.grade,
             "lead_score": lead.score,
             "reasons": escalation.reasons if escalation else [],
+            "llm_error": pipe.get("llm_error"),
+            "llm_attempted": pipe.get("llm_attempted"),
         },
     )

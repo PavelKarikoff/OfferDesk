@@ -39,11 +39,12 @@ flowchart TD
 `extract(transcript, force_regex=False)`:
 
 1. `force_regex=True` → regex
-2. LLM (`utils.chat_json`). При ошибке → regex
+2. LLM (`utils.chat_json`). При ошибке → regex, `meta.llm_error` заполнен
 3. `confidence.overall < 0.5` → merge LLM + regex
 4. иначе → LLM
 
-Результат: `(DealExtraction, source ∈ {llm, regex, merged})`
+Результат: `(DealExtraction, source ∈ {llm, regex, merged}, meta)`
+`meta = {llm_error, llm_attempted}`. Если LLM упал, regex — страховка, но `escalate()` ставит `llm_failed`.
 
 ## Контур отказа
 
@@ -63,11 +64,14 @@ LLM недоступен → `APIConnectionError` → regex fallback → про�
 | `area_out_of_range` | `area_m2` ∉ [50, 500] | `validation_failed` → эскалация |
 | `phone_format` / `email_format` | regex не совпал | `validation_failed` → эскалация |
 | `below_company_price` | budget/area < 60k | warning (не эскалация) |
+| `low_confidence` | `source=llm` и `confidence.overall` < 0.6 | эскалация → менеджер (нужны уточнения) |
+| `insufficient_data` | `etalon_score` < 30 | эскалация → менеджер (нужны уточнения) |
 | `legal_risk` | «суд», «юрид», «проверк», «травм», «угроз» в objections или в сыром тексте | эскалация → юрист + руководитель ОП |
-| `negative_and_low_score` | sentiment=негативный и `etalon_score` < 30 | эскалация → руководитель ОП |
+| `negative_and_low_score` | sentiment=негативный и `etalon_score` < 30 | всегда вместе с `insufficient_data` → менеджер, если нет `legal_risk` |
+| `llm_failed` | LLM упал (сеть / невалидный JSON / схема), regex-fallback | эскалация → менеджер (нужны уточнения) |
 | `validation_failed` | `validation.ok=False` | эскалация → руководитель ОП |
 
-`low_confidence` не триггерит эскалацию: regex всегда даёт `confidence=0.3`, это шум. Метрика пишется в `audit_log`, триггером не является.
+`low_confidence` срабатывает только для `source=llm`. Regex всегда даёт `0.3` — это шум канала, не эскалация. `source=merged` по confidence не эскалирует; мало данных (`etalon < 30`) эскалирует независимо от канала.
 
 ## Lead scoring
 
@@ -99,9 +103,9 @@ Grade: A ≥ 0.7, B ≥ 0.4, C < 0.4.
 
 | `intent` | Когда |
 |---|---|
-| `quote_request` | эталон ≥ 80%, нет эскалации |
-| `qualify` | не хватает полей |
-| `escalate` | юр. риск, негатив + низкий score, провал валидации (кроме «только бюджет») |
+| `quote_request` | эталон ≥ 80%, нет жёсткой эскалации |
+| `qualify` | эталон < 80% без жёстких причин; `insufficient_data` — мягкая эскалация (`escalate=true`, intent=qualify) |
+| `escalate` | юр. риск, низкая уверенность LLM, падение LLM, провал валидации (кроме «только бюджет») |
 | `reject` | единственная жёсткая проблема — бюджет < 3 млн |
 
 | `priority` | Когда |
@@ -120,7 +124,9 @@ Grade: A ≥ 0.7, B ≥ 0.4, C < 0.4.
 
 Таблица `audit_log` в `deals.db`:
 
-- `deal_id`, `ts`, `source`, `etalon_score`, `confidence`;
+- `deal_id`, `ts`, `source`, `status` (`success` / `escalated` / `error`);
+- `input_text`, `result_json`, `error_detail`;
+- `etalon_score`, `confidence`;
 - `validation_json`, `escalation_json`;
 - `lead_grade`, `lead_score`.
 
@@ -137,7 +143,7 @@ Grade: A ≥ 0.7, B ≥ 0.4, C < 0.4.
 - прокси OpenAI недоступен на момент сдачи → LLM-метрики в roadmap;
 - `transcript_parser_local` теряет дробную часть бюджета («6.5 млн» → «5 млн»);
 - методика метрик исправлена (TP только при `exp == got`);
-- `low_confidence` убран из триггеров эскалации;
+- `low_confidence` эскалирует только LLM (`source=llm`), не regex;
 - черновик ответа клиенту при `temperature=0.7` не вынесен: `utils.chat_json` фиксирован на `0.2`. Фиктивный второй шаг не делаем — см. roadmap ниже.
 
 ## Roadmap

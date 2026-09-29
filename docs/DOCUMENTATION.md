@@ -360,7 +360,7 @@ bot.py / main.py / flask_app.py
 
 ## 10. Извлечение сделки (`extraction/`)
 
-Пакет `extraction/` превращает текст транскрибации в типизированную карточку `DealExtraction` и затем в словарь CRM. Точка входа — `extract(transcript) -> (DealExtraction, source)`.
+Пакет `extraction/` превращает текст транскрибации в типизированную карточку `DealExtraction` и затем в словарь CRM. Точка входа — `extract(transcript) -> (DealExtraction, source, meta)`.
 
 CRM вызывает её из `_parse_transcript_for_crm` (`web_app/routes_deals.py`): `extract` → `to_crm_dict`. Эталон и статус сделки считаются снаружи (`web_app/etalon_score.py`).
 
@@ -419,7 +419,7 @@ Enum: `material` — газобетон / клееный брус / кирпич
 
 `validate()` проверяет бюджет (минимум 3 млн ₽), площадь (50–500 м²), формат телефона (`+7` и 10 цифр) и email. Нарушение — `issues`, `ok = False`. Цена ниже 60 000 ₽/м² — только `warnings`.
 
-`escalate()` зовёт человека, если уверенность ниже 0.6, в возражениях юридический риск, провалилась валидация, либо sentiment негативный и `etalon_score` < 30. При `legal_risk` адресат — «юрист + руководитель ОП», иначе «руководитель ОП». Нет причин — `None`.
+`escalate()` зовёт человека, если: `source=llm` и уверенность ниже 0.6; эталон < 30%; в тексте юридический риск; провалилась валидация; sentiment негативный и `etalon_score` < 30; либо LLM упал (`llm_error` в meta pipeline). Regex по `low_confidence` не эскалирует. При `legal_risk` адресат — «юрист + руководитель ОП», при мало данных / низкой уверенности LLM / падении модели — «менеджер (нужны уточнения)», иначе «руководитель ОП». Нет причин — `None`.
 
 Правило `negative_and_low_score` (sentiment=негативный и etalon_score < 30) в кейсе с судом не сработало: клиент заполнил телефон, площадь и материал — 43% эталона, выше порога. Эскалация сработала по другим причинам: low_confidence, legal_risk, validation_failed.
 
