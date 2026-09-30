@@ -172,7 +172,7 @@ Exact `etalon_score`: regex **8/15 (53.3%)** → LLM **14/15 (93.3%)**. Исто
 
 ### Инфраструктура
 
-Docker, Waitress + systemd на VPS, health каждые 5 минут, бэкап `deals.db`, OpenAI через `OPENAI_PROXY`. Тесты: **118 passed + 15 subtests** (`pytest` из корня). CLI/API генерации АР/ИР: `main.py`, `flask_app.py`, `go_server/`.
+Docker, Waitress + systemd на VPS, health каждые 5 минут, бэкап `deals.db`, OpenAI напрямую (VPN; при недоступности — regex-fallback). Тесты: **118 passed + 15 subtests** (`pytest` из корня). CLI/API генерации АР/ИР: `main.py`, `flask_app.py`, `go_server/`.
 
 ---
 
