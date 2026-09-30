@@ -273,7 +273,7 @@
       <div class="node">
         <strong>Заявка</strong>
         сайт / Авито / Циан
-        <div class="tiny" style="margin-top:6px;"><code>POST /ingest</code> JSON</div>
+        <div class="tiny" style="margin-top:6px;"><code>POST /ingest</code> JSON *</div>
       </div>
       <div class="node">
         <strong>Звонок</strong>
@@ -300,6 +300,7 @@
     </div>
   </div>
   <p class="quote">«Модель структурирует, код решает».</p>
+  <p class="tiny" style="margin-top:8px;">* <code>POST /ingest</code> пишет результат в <code>audit_log</code> (<code>deal_id=None</code>) и не создаёт карточку в <code>deals</code> — она появляется через форму CRM. Сознательно: audit_log — таблица результатов, deals — рабочее место менеджера.</p>
   <footer class="bar"><span>Offer · Desk</span><span>03 / 12</span></footer>
 </section>
 
@@ -520,17 +521,17 @@
       <div>8 / 15 exact</div>
       <div class="tiny">regex=15</div>
     </div>
-    <div class="card metric-big">
-      <div class="kicker">LLM v1</div>
-      <div class="v" style="color:#e0b06a;">80.0%</div>
-      <div>12 / 15 exact</div>
-      <div class="tiny">llm=11 · regex=1 · merged=3</div>
-    </div>
     <div class="card metric-big" style="border-color:#c4b59a;">
-      <div class="kicker">LLM v2</div>
-      <div class="v good">100%</div>
+      <div class="kicker">LLM v1 · сейчас в проде</div>
+      <div class="v good">93.3%</div>
+      <div>14 / 15 exact</div>
+      <div class="tiny">llm=12 · merged=3 · regex=0 · живой прогон 30.09</div>
+    </div>
+    <div class="card metric-big">
+      <div class="kicker">LLM v2 · few-shot</div>
+      <div class="v" style="color:#9eb4c8;">100%</div>
       <div>15 / 15 exact</div>
-      <div class="tiny">llm=12 · merged=3 · regex=0</div>
+      <div class="tiny">снимок 29.09 — готов к сравнению</div>
     </div>
   </div>
   <div class="card" style="padding:6px 10px; flex:1;">
@@ -540,21 +541,21 @@
           <th>Поле</th>
           <th style="text-align:center;">regex</th>
           <th style="text-align:center;">LLM v1</th>
-          <th style="text-align:center;">LLM v2</th>
+          <th style="text-align:center;">LLM v2*</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td><code>budget_rub</code></td><td class="heat-0">0.00</td><td class="heat-3">0.91</td><td class="heat-4">1.00</td></tr>
-        <tr><td><code>start_date</code></td><td class="heat-0">0.30</td><td class="heat-3">0.90</td><td class="heat-4">1.00</td></tr>
+        <tr><td><code>budget_rub</code></td><td class="heat-0">0.00</td><td class="heat-4">1.00</td><td class="heat-4">1.00</td></tr>
+        <tr><td><code>start_date</code></td><td class="heat-0">0.30</td><td class="heat-4">1.00</td><td class="heat-4">1.00</td></tr>
         <tr><td><code>financing</code></td><td class="heat-1">0.50</td><td class="heat-4">1.00</td><td class="heat-4">1.00</td></tr>
-        <tr><td><code>area_m2</code></td><td class="heat-1">0.54</td><td class="heat-3">0.85</td><td class="heat-4">1.00</td></tr>
-        <tr><td><code>sentiment</code></td><td class="heat-0">0.00</td><td class="heat-2">0.71</td><td class="heat-4">1.00</td></tr>
-        <tr><td><code>phone</code></td><td class="heat-4">1.00</td><td class="heat-0">0.07</td><td class="heat-4">1.00</td></tr>
-        <tr><td><code>tone</code></td><td class="heat-0">0.00</td><td class="heat-3">0.93</td><td class="heat-3">0.93</td></tr>
+        <tr><td><code>area_m2</code></td><td class="heat-1">0.54</td><td class="heat-4">0.96</td><td class="heat-4">1.00</td></tr>
+        <tr><td><code>sentiment</code></td><td class="heat-0">0.00</td><td class="heat-3">0.80</td><td class="heat-4">1.00</td></tr>
+        <tr><td><code>phone</code></td><td class="heat-4">1.00</td><td class="heat-4">1.00</td><td class="heat-4">1.00</td></tr>
+        <tr><td><code>tone</code></td><td class="heat-0">0.00</td><td class="heat-3">0.87</td><td class="heat-3">0.93</td></tr>
       </tbody>
     </table>
   </div>
-  <p class="tiny">Golden set: 15 кейсов. Промпт-итерация v1 → v2. Regex не достаёт бюджет ни разу. v1 закрыл бюджет, но сломал телефон. v2 с few-shot починил телефон и защитил схему от null — 12 через LLM, 3 через merge, ни одного fallback.</p>
+  <p class="tiny">Golden set: 15 кейсов. LLM v1 — живой прогон 30.09: бюджет, срок и финансирование 1.00, телефон 1.00 (сравнение по цифрам), 12 через LLM, 3 через merge, ни одного fallback. Телефон в ранних прогонах падал из-за методики сравнения, не из-за промпта. * v2 (few-shot, снимок 29.09: 15/15) — готов к сравнению с v1.</p>
   <footer class="bar"><span>Offer · Desk</span><span>08 / 12</span></footer>
 </section>
 
@@ -610,8 +611,8 @@
   <h1>Ограничения и что мы честно признаём</h1>
   <div class="grid-22">
     <div class="card" style="border-color:#3d5c46;">
-      <h2>Сейчас: LLM v2</h2>
-      <p class="muted">OpenAI доступен, промпт v2. Golden set — <strong class="ok">100% exact</strong> (15/15). Regex — не основной режим.</p>
+      <h2>Сейчас: LLM v1</h2>
+      <p class="muted">OpenAI доступен напрямую, промпт v1. Golden set — <strong class="ok">93.3% exact</strong> (14/15), живой прогон 30.09. Regex — не основной режим.</p>
     </div>
     <div class="card">
       <h2>Контур отказа</h2>
@@ -647,7 +648,7 @@
   <div class="grid-2">
     <div class="card">
       <ul class="roadmap">
-        <li><span class="n">1</span> Tone 0.93 → 0.95 — доп. few-shot</li>
+        <li><span class="n">1</span> Tone 0.87 → 0.95 — доп. few-shot (v2)</li>
         <li><span class="n">2</span> Интеграция с Битрикс24 / amoCRM</li>
         <li><span class="n">3</span> Интеграция с 1С — прайс-листы</li>
       </ul>
@@ -656,12 +657,12 @@
       <ul class="roadmap">
         <li><span class="n">4</span> Дашборд качества в реальном времени</li>
         <li><span class="n">5</span> Отдельный creative-шаг (temperature 0.7)</li>
-        <li><span class="n">6</span> NL-прокси на VPS как запасной канал, не как единственный</li>
+        <li><span class="n">6</span> Промпт v2: перепрогон golden set и сравнение с v1</li>
       </ul>
     </div>
   </div>
   <div class="card" style="flex:0 0 auto;">
-    <p style="margin:0; font-size:17px;">Основной режим — <code>llm</code> (v2). Тот же <code>pipeline.extract()</code> при сбое API уходит в regex, при низкой уверенности — в merge. Архитектуру менять не нужно.</p>
+    <p style="margin:0; font-size:17px;">Основной режим — <code>llm</code> (v1). Тот же <code>pipeline.extract()</code> при сбое API уходит в regex, при низкой уверенности — в merge. Архитектуру менять не нужно.</p>
   </div>
   <footer class="bar"><span>Offer · Desk</span><span>11 / 12</span></footer>
 </section>
