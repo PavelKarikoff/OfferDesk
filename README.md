@@ -105,7 +105,7 @@
 
 **Lead scoring A/B/C** по 6 факторам (бюджет, срок, участок, objections, sentiment, decision_maker): A ≥ 0.7, B ≥ 0.4, C < 0.4.
 
-**Отказоустойчивость:** LLM недоступен → regex-fallback. На проде (прокси OpenAI недоступен) карточки A/B разобраны regex; CRM не падает.
+**Отказоустойчивость:** LLM недоступен → regex-fallback; CRM не падает (regex-карточки сняты на проде v1.1.0). LLM-контур работает напрямую, без прокси — проверен живым прогоном golden set 30.09.
 
 ---
 
@@ -117,20 +117,22 @@
 
 **Окупаемость.** Один менеджер ≈ **150 тыс. ₽/мес**. Автоматизация высвобождает **~30% времени** и даёт **+10–15%** конверсии в замер. При среднем чеке **8 млн ₽** и марже **15%** окупаемость — **1–2 месяца**. Полный расчёт: [`docs/ROI.md`](docs/ROI.md).
 
-**Защита «до / после».** Golden set из 15 заявок, precision / recall по полям, пороговый тест от регрессий:
+**Защита «до / после».** Golden set из 15 заявок, precision / recall по полям, пороговый тест от регрессий. LLM-контур (промпт v1, прогон 2026-09-30) против regex-baseline. Телефон сравнивается по цифрам, участок — по соткам:
 
-| Поле | Precision | Recall | F1 |
-|---|---|---|---|
-| phone | 1.00 | 1.00 | 1.00 |
-| email | 1.00 | 1.00 | 1.00 |
-| plot | 0.91 | 1.00 | 0.95 |
-| material | 1.00 | 1.00 | 1.00 |
-| area_m2 | 0.70 | 0.54 | 0.61 |
-| financing | 1.00 | 0.50 | 0.67 |
-| start_date | 0.60 | 0.30 | 0.40 |
-| budget_rub | 0.00 | 0.00 | 0.00 |
+| Поле | Regex P / R | LLM Precision | LLM Recall | LLM F1 |
+|---|---|---|---|---|
+| phone | 1.00 / 1.00 | 1.00 | 1.00 | 1.00 |
+| email | 1.00 / 1.00 | 1.00 | 1.00 | 1.00 |
+| plot | 0.91 / 1.00 | 1.00 | 1.00 | 1.00 |
+| material | 1.00 / 1.00 | 1.00 | 1.00 | 1.00 |
+| area_m2 | 0.70 / 0.54 | 1.00 | 0.92 | 0.96 |
+| financing | 1.00 / 0.50 | 1.00 | 1.00 | 1.00 |
+| start_date | 0.60 / 0.30 | 1.00 | 1.00 | 1.00 |
+| budget_rub | 0.00 / 0.00 | 1.00 | 1.00 | 1.00 |
+| tone | — | 0.87 | 0.87 | 0.87 |
+| sentiment | — | 0.80 | 0.80 | 0.80 |
 
-Baseline regex: exact `etalon_score` **8/15 (53.3%)**. Regex держит телефон, почту, материал, участок. Бюджет, срок, финансирование и площадь — зона LLM (промпт v2 с few-shot готов). Запуск: `python3 scripts/run_golden_set.py --force-regex`.
+Exact `etalon_score`: regex **8/15 (53.3%)** → LLM **14/15 (93.3%)**. Источники: LLM 12, merged 3 (слияние LLM+regex при confidence < 0.5), regex 0. Regex держит контакты, материал, участок; бюджет, срок, финансирование и площадь — зона LLM: `budget_rub` 0.00 → 1.00. Тон и тональность извлекает только LLM (0.80–0.87 — субъективная разметка). Запуск: `python3 scripts/run_golden_set.py` (LLM) и `--force-regex` (baseline); полный отчёт с TP/FP/FN — `reports/extraction_metrics.md`.
 
 ---
 
@@ -170,7 +172,7 @@ Baseline regex: exact `etalon_score` **8/15 (53.3%)**. Regex держит тел
 
 ### Инфраструктура
 
-Docker, Waitress + systemd на VPS, health каждые 5 минут, бэкап `deals.db`, OpenAI через `OPENAI_PROXY`. Тесты: **94 зелёных** (`pytest` из корня). CLI/API генерации АР/ИР: `main.py`, `flask_app.py`, `go_server/`.
+Docker, Waitress + systemd на VPS, health каждые 5 минут, бэкап `deals.db`, OpenAI через `OPENAI_PROXY`. Тесты: **118 passed + 15 subtests** (`pytest` из корня). CLI/API генерации АР/ИР: `main.py`, `flask_app.py`, `go_server/`.
 
 ---
 

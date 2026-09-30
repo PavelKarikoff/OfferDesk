@@ -88,11 +88,15 @@ _PLOT_NO_DETAIL = frozenset({
 
 
 def _norm_for_field(name: str, v):
-    """Для plot — сравнение по конкретике (сотки); для остальных — _norm.
+    """Для plot — сравнение по конкретике (сотки); для phone — по цифрам.
 
     '12 соток в Московской области' ≈ '12 соток, Московская область' → '12 соток'
     'участок есть' / 'есть' / пусто → None
+    '+7 916 123-45-67' == '+79161234567' → '79161234567' (формат не важен)
     """
+    if name == "phone":
+        digits = _re.sub(r"\D", "", str(v or ""))
+        return digits or None
     if name != "plot":
         return _norm(v)
     if not v:

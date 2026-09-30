@@ -50,11 +50,13 @@ flowchart TD
 
 LLM недоступен → `APIConnectionError` → regex fallback → процесс не останавливается.
 
-Проверено вживую (прокси OpenAI недоступен на момент сдачи):
+Golden set 15 кейсов, живые прогоны (2026-09-30, промпт v1; телефон сравнивается по цифрам):
 
-- baseline regex: exact `etalon_score` 8/15 (53.3%);
-- слабые поля regex: `budget_rub` recall 0.00, `start_date` recall 0.30, `financing` recall 0.50;
-- сильные поля regex: `phone`, `email`, `material` — precision/recall 1.00.
+- LLM-контур: exact `etalon_score` 14/15 (93.3%); источники: LLM 12, merged 3, regex 0;
+- слабые поля regex (baseline): `budget_rub` recall 0.00, `start_date` recall 0.30, `financing` recall 0.50;
+- зона LLM: `budget_rub`, `start_date`, `financing`, `area_m2`, `tone`, `sentiment` — 0.96–1.00 против 0.40–0.61 у regex;
+- сильные поля regex: `phone`, `email`, `material` — precision/recall 1.00;
+- снимки прогонов: `reports/metrics_llm_v1.txt`, `reports/metrics_regex.txt`.
 
 ## Валидация и эскалация
 
@@ -145,7 +147,7 @@ Grade: A ≥ 0.7, B ≥ 0.4, C < 0.4.
 
 См. `docs/KNOWN_ISSUES.md`:
 
-- прокси OpenAI недоступен на момент сдачи → LLM-метрики в roadmap;
+- LLM-канал требует доступ к OpenAI (VPN; прокси выпилен из `.env`), при недоступности — regex-fallback;
 - `transcript_parser_local` теряет дробную часть бюджета («6.5 млн» → «5 млн»);
 - методика метрик исправлена (TP только при `exp == got`);
 - `low_confidence` эскалирует только LLM (`source=llm`), не regex — сознательное отклонение, см. KNOWN_ISSUES;
@@ -162,11 +164,12 @@ Grade: A ≥ 0.7, B ≥ 0.4, C < 0.4.
 - `tests/test_scoring.py` — 5 тестов (A/B/C, факторы).
 - `tests/test_actions.py` — inbox-контракт (intent / priority / confidence / escalate).
 - `tests/test_extraction_quality.py` — пороговый тест по golden set.
-- `web_app/tests/` — 51 существующих тестов.
+- `web_app/tests/` — 55 существующих тестов.
 
 Запуск:
 
 ```bash
+python3 -m pytest -q   # 118 passed + 15 subtests, из корня
 python3 -m unittest tests.test_extraction tests.test_validation \
                   tests.test_scoring tests.test_actions \
                   tests.test_extraction_quality -v
