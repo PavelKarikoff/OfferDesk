@@ -45,6 +45,13 @@ class TestValidationRules(unittest.TestCase):
         self.assertFalse(r.ok)
         self.assertTrue(any("phone_format" in i for i in r.issues))
 
+    def test_phone_with_separators_ok(self):
+        # LLM возвращает телефон «как в тексте» заявки: разделители
+        # не должны проваливать валидацию валидного номера.
+        e = _mk(client={"phone": "+7 916 123-45-67"})
+        r = validate(e)
+        self.assertTrue(r.ok, r.issues)
+
     def test_email_format_bad(self):
         e = _mk(client={"email": "no-at-sign"})
         r = validate(e)

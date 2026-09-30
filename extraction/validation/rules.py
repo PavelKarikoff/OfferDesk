@@ -13,7 +13,7 @@ MIN_BUDGET = 3_000_000
 MIN_PRICE_PER_M2 = 60_000
 AREA_RANGE = (50, 500)
 
-PHONE_RE = re.compile(r"^\+7\d{10}$")
+PHONE_RE = re.compile(r"^7\d{10}$")  # 11 цифр, первая — 7; проверяем после нормализации
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -40,9 +40,15 @@ def validate(extraction: DealExtraction) -> ValidationResult:
             result.issues.append(f"area_out_of_range:{extraction.object.area_m2}")
             result.ok = False
 
-    if extraction.client.phone and not PHONE_RE.match(extraction.client.phone):
-        result.issues.append(f"phone_format:{extraction.client.phone}")
-        result.ok = False
+    phone = extraction.client.phone
+    if phone:
+        # Нормализуем по цифрам: LLM возвращает телефон «как в тексте»
+        # («+7 916 123-45-67»), разделители не должны проваливать валидацию.
+        # Неверный номер ловится: другие цифры или длина → нет совпадения.
+        digits = re.sub(r"\D", "", phone)
+        if not PHONE_RE.match(digits):
+            result.issues.append(f"phone_format:{phone}")
+            result.ok = False
 
     if extraction.client.email and not EMAIL_RE.match(extraction.client.email):
         result.issues.append(f"email_format:{extraction.client.email}")

@@ -160,7 +160,7 @@ Grade: A ≥ 0.7, B ≥ 0.4, C < 0.4.
 ## Тесты
 
 - `tests/test_extraction.py` — 25 тестов (схема, хелперы, regex, pipeline).
-- `tests/test_validation.py` — 11 тестов (rules + escalation).
+- `tests/test_validation.py` — 16 тестов (rules + escalation).
 - `tests/test_scoring.py` — 5 тестов (A/B/C, факторы).
 - `tests/test_actions.py` — inbox-контракт (intent / priority / confidence / escalate).
 - `tests/test_extraction_quality.py` — пороговый тест по golden set.
@@ -169,7 +169,7 @@ Grade: A ≥ 0.7, B ≥ 0.4, C < 0.4.
 Запуск:
 
 ```bash
-python3 -m pytest -q   # 118 passed + 15 subtests, из корня
+python3 -m pytest -q   # 119 passed + 15 subtests, из корня
 python3 -m unittest tests.test_extraction tests.test_validation \
                   tests.test_scoring tests.test_actions \
                   tests.test_extraction_quality -v
