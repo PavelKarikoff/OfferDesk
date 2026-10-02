@@ -1,6 +1,6 @@
 # About
 
-**OfferDesk** ([репозиторий](https://github.com/PavelKoff2025/OfferDesk))
+**OfferDesk** ([репозиторий](https://github.com/PavelKarikoff/OfferDesk))
 
 **ИЖС-квалификатор лидов:** заявка с сайта / Авито / Циан / звонка → JSON → квалификация A/B/C → эскалация → сделка в CRM → задача менеджеру. Первый контур — веб-CRM «Дом-Мастер» (не чат-бот): эталон, PDF-КП, email. Telegram — канал доставки, не интерфейс продукта.
 

@@ -74,7 +74,7 @@ AI-квалификатор лидов для ИЖС: LLM-слой поверх 
 ### Изменено
 
 - Продукт закреплён под именем **OfferDesk**. «Дом-Мастер» — заказчик (бренд в КП и письмах). Telegram — канал, не название системы.
-- Репозиторий GitHub: [PavelKoff2025/OfferDesk](https://github.com/PavelKoff2025/OfferDesk) (бывший `AI_Bot_avto_KP`).
+- Репозиторий GitHub: [PavelKarikoff/OfferDesk](https://github.com/PavelKarikoff/OfferDesk) (бывший `AI_Bot_avto_KP`).
 - Ставка тёплого контура: **75 000 ₽/м²** (было 41 000 ₽/м²). CRM пересчитывает `tk_cost` по площади при открытии БД.
 - КП п.5: коммерческие условия только связным текстом (отклоняем JSON/словарь от модели).
 - КП п.6 и база знаний: уровень «холодный контур» убран. Тёплый контур = сумма КП (площадь × 75 000 ₽/м²). White Box — ориентир ~ + 2 500 000 ₽ после ТК.
@@ -85,5 +85,5 @@ AI-квалификатор лидов для ИЖС: LLM-слой поверх 
 - ТЗ для внешнего инженера.
 - Выгрузка в внешнюю CRM.
 
-[1.1.0]: https://github.com/PavelKoff2025/OfferDesk/releases/tag/v1.1.0
-[1.0.0]: https://github.com/PavelKoff2025/OfferDesk/releases/tag/v1.0.0
+[1.1.0]: https://github.com/PavelKarikoff/OfferDesk/releases/tag/v1.1.0
+[1.0.0]: https://github.com/PavelKarikoff/OfferDesk/releases/tag/v1.0.0

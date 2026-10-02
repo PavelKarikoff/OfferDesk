@@ -3,7 +3,7 @@
 **Дата:** 2026-08-14  
 **Хосты:** BlueTerbium `194.67.103.144` · NL-прокси `193.233.174.4`  
 **CRM URL:** http://194.67.103.144:5001  
-**GitHub:** https://github.com/PavelKoff2025/OfferDesk  
+**GitHub:** https://github.com/PavelKarikoff/OfferDesk  
 **Код на сервере:** `/root/AI_Bot_avto_KP` (исторический путь каталога, не путать с именем репозитория)
 
 Продукт: **OfferDesk** (для «Дом-Мастер»). Юниты systemd пока `dommaster-*` — исторические имена, не переименовывать на проде без миграции.

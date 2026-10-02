@@ -218,7 +218,7 @@ sudo ufw status
 
 ```bash
 cd ~
-git clone https://github.com/PavelKoff2025/OfferDesk.git
+git clone https://github.com/PavelKarikoff/OfferDesk.git
 cd OfferDesk
 ```
 

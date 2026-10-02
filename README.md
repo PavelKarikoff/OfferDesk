@@ -4,7 +4,7 @@
 
 Сырой текст с сайта, Авито, Циан или из транскрибации звонка → структурированный JSON → квалификация A/B/C → эскалация риска → сделка в CRM → задача менеджеру. Первый рабочий контур — веб-CRM «Дом-Мастер» (не чат-бот): карточка сделки, эталон, PDF-КП, email.
 
-Прод: [http://194.67.103.144:5001](http://194.67.103.144:5001) · health: `GET /health` · ingest: `POST /ingest` · тег [`v1.1.0`](https://github.com/PavelKoff2025/OfferDesk/releases/tag/v1.1.0)
+Прод: [http://194.67.103.144:5001](http://194.67.103.144:5001) · health: `GET /health` · ingest: `POST /ingest` · тег [`v1.1.0`](https://github.com/PavelKarikoff/OfferDesk/releases/tag/v1.1.0)
 
 ![Карточка сделки: regex, лид C, эскалация](docs/screenshots/prod_deal_card_escalation.png)
 
@@ -199,7 +199,7 @@ Docker, Waitress + systemd на VPS, health каждые 5 минут, бэка�
 ### 1. Клонирование
 
 ```bash
-git clone https://github.com/PavelKoff2025/OfferDesk.git
+git clone https://github.com/PavelKarikoff/OfferDesk.git
 cd OfferDesk
 ```
 
@@ -389,4 +389,4 @@ BASE_URL=http://127.0.0.1:5001 ./scripts/check_endpoints.sh --quick
 
 ## Автор
 
-[PavelKoff2025](https://github.com/PavelKoff2025) — квалификатор заявок ИЖС и рабочий контур CRM/КП для отдела продаж.
+[PavelKarikoff](https://github.com/PavelKarikoff) — квалификатор заявок ИЖС и рабочий контур CRM/КП для отдела продаж.

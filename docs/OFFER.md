@@ -75,6 +75,6 @@
 
 ## Контакты
 
-- GitHub: `PavelKoff2025/OfferDesk`
+- GitHub: `PavelKarikoff/OfferDesk`
 - Демо: http://194.67.103.144:5001
 - Документация: `docs/DOCUMENTATION.md`, `docs/ARCHITECTURE.md`, `docs/ROI.md`

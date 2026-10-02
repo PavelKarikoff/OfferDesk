@@ -27,15 +27,15 @@ info:
     Генерация АР с изображениями может занимать несколько минут.
   version: 1.0.0
   contact:
-    name: PavelKoff2025
-    url: https://github.com/PavelKoff2025
+    name: PavelKarikoff
+    url: https://github.com/PavelKarikoff
   license:
     name: MIT
     identifier: MIT
 
 externalDocs:
   description: Документация Go-сервера и полная документация проекта
-  url: https://github.com/PavelKoff2025/OfferDesk
+  url: https://github.com/PavelKarikoff/OfferDesk
 
 servers:
   - url: http://127.0.0.1:5001

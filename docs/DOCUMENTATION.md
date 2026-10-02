@@ -89,7 +89,7 @@ sudo apt-get install -y python3-venv python3-pip \
 ## 3. Установка
 
 ```bash
-git clone https://github.com/PavelKoff2025/OfferDesk.git
+git clone https://github.com/PavelKarikoff/OfferDesk.git
 cd OfferDesk   # локально папка может называться AI_Auogeneration
 
 python3 -m venv .venv
@@ -604,4 +604,4 @@ PYTHONPATH=.. python3 app.py
 ## Лицензия и автор
 
 Проект распространяется под лицензией [MIT](../LICENSE).  
-Автор: [PavelKoff2025](https://github.com/PavelKoff2025).
+Автор: [PavelKarikoff](https://github.com/PavelKarikoff).

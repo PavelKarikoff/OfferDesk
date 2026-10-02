@@ -3,7 +3,7 @@
 **Кому:** куратор Анна  
 **От кого:** Павел Кофф  
 **Проект:** OfferDesk  
-**Репозиторий:** https://github.com/PavelKoff2025/OfferDesk  
+**Репозиторий:** https://github.com/PavelKarikoff/OfferDesk  
 **Прод:** http://194.67.103.144:5001 · `GET /health`  
 **Дата:** 21.08.2026  
 
@@ -68,7 +68,7 @@ Telegram в проекте — канал доставки, не интерфе�
 2. `GET /health` → сервис жив.  
 3. Новая сделка → вставить протокол → смотреть % эталона: при ≥ 80% «Сгенерировать КП», иначе «Недостающие данные».  
 4. Учебные тексты в репозитории: `knowledge_base/demo_protocol_1.md` (≈100%) и `demo_protocol_2.md` (≈43%). На боевой CRM **не** нажимать «Загрузить демо» — это сотрёт сделки.  
-5. GitHub: https://github.com/PavelKoff2025/OfferDesk — README описывает продукт как веб-CRM, не бот.
+5. GitHub: https://github.com/PavelKarikoff/OfferDesk — README описывает продукт как веб-CRM, не бот.
 
 ---
 

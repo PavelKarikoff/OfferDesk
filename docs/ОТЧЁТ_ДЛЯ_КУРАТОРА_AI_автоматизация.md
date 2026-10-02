@@ -3,7 +3,7 @@
 
 **Кому:** куратор Анна  
 **Проект:** OfferDesk — рабочее место ОП, автогенерация коммерческих предложений (КП)  
-**Репозиторий:** https://github.com/PavelKoff2025/OfferDesk  
+**Репозиторий:** https://github.com/PavelKarikoff/OfferDesk  
 **Контекст:** автоматизация подготовки документов отдела продаж строительной компании «Дом-Мастер» на основе транскрибации клиентского звонка и технологий ИИ  
 **Дата актуализации отчёта:** 4 августа 2026  
 
@@ -133,7 +133,7 @@
 **Зачем:** единый источник правды для куратора и для сервера (`git pull` вместо ручного `scp`).
 
 **Что сделано:** коммит и push всех изменений (аудит, Docker, Go, docs, OpenAPI) в  
-https://github.com/PavelKoff2025/OfferDesk  
+https://github.com/PavelKarikoff/OfferDesk  
 Обновлены README и About репозитория. На VPS выполнен `git fetch` / `git reset --hard origin/main` → `HEAD` на `51283e9`.
 
 ---
@@ -205,7 +205,7 @@ https://github.com/PavelKoff2025/OfferDesk
 ### Локально (Python)
 
 ```bash
-git clone https://github.com/PavelKoff2025/OfferDesk.git
+git clone https://github.com/PavelKarikoff/OfferDesk.git
 cd OfferDesk
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
@@ -232,7 +232,7 @@ export DOCKERHUB_USER=pavelkoff
 ./scripts/push_dockerhub.sh
 
 # на сервере:
-git clone https://github.com/PavelKoff2025/OfferDesk.git
+git clone https://github.com/PavelKarikoff/OfferDesk.git
 cd OfferDesk && cp .env.example .env   # секреты
 export DOCKERHUB_USER=pavelkoff
 ./scripts/pull_and_run.sh go-api
@@ -278,5 +278,5 @@ export DOCKERHUB_USER=pavelkoff
 Решение демонстрирует паттерн: **извлечь структуру → оформить документ → доставить в рабочий канал**, плюс базовый контур поставки через контейнеры.
 
 Готово к проверке по репозиторию  
-https://github.com/PavelKoff2025/OfferDesk  
+https://github.com/PavelKarikoff/OfferDesk  
 (`AUDIT.md`, `docs/`, Docker-файлы, `go_server/`, скриншоты в `docs/screenshots/`).
