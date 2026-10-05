@@ -195,7 +195,17 @@ def _load_item(conn, item_id: int):
 def capture_form():
     if not _allowed():
         return jsonify({"error": "unauthorized"}), 401
-    return render_template("tasks/capture.html")
+    conn = connect_db()
+    try:
+        recent = [
+            _item_dict(row)
+            for row in conn.execute(
+                "SELECT * FROM items ORDER BY created_at DESC LIMIT 5"
+            )
+        ]
+    finally:
+        conn.close()
+    return render_template("tasks/capture.html", recent=recent)
 
 
 @tasks_bp.route("/capture", methods=["POST"])
@@ -219,19 +229,19 @@ def capture():
 
     if not _wants_json() and request.form.get("text"):
         if saved["needs_review"]:
-            return redirect(url_for("tasks.review_item", item_id=saved["id"]))
-        return redirect(url_for("tasks.list_tasks"))
+            return redirect(url_for("tasks.review", item_id=saved["id"]))
+        return redirect(url_for("tasks.tasks_list"))
 
     return jsonify({"source": source, "item": saved, "meta": meta}), 200
 
 
 @tasks_bp.route("/tasks", methods=["GET"])
-def list_tasks():
+def tasks_list():
     if not _allowed():
         return jsonify({"error": "unauthorized"}), 401
 
-    status = (request.args.get("status") or "").strip()
-    review_only = request.args.get("needs_review") == "1"
+    status = (request.args.get("status") or "all").strip()
+    review_only = request.args.get("needs_review") == "1" or status == "needs_review"
     conn = connect_db()
     try:
         sql = "SELECT * FROM items"
@@ -252,7 +262,7 @@ def list_tasks():
 
     if _wants_json():
         return jsonify({"items": items}), 200
-    return render_template("tasks/list.html", items=items, status=status or "all")
+    return render_template("tasks/list.html", items=items, status=status)
 
 
 @tasks_bp.route("/tasks/<int:item_id>/done", methods=["POST"])
@@ -276,12 +286,12 @@ def mark_done(item_id: int):
         conn.close()
 
     if not _wants_json():
-        return redirect(url_for("tasks.list_tasks"))
+        return redirect(url_for("tasks.tasks_list"))
     return jsonify({"item": saved}), 200
 
 
 @tasks_bp.route("/tasks/<int:item_id>/review", methods=["GET", "POST"])
-def review_item(item_id: int):
+def review(item_id: int):
     if not _allowed():
         return jsonify({"error": "unauthorized"}), 401
 
@@ -318,7 +328,7 @@ def review_item(item_id: int):
         conn.close()
 
     if request.method == "POST" and not _wants_json() and request.form:
-        return redirect(url_for("tasks.list_tasks"))
+        return redirect(url_for("tasks.tasks_list"))
     if request.method == "GET" and not _wants_json():
         return render_template("tasks/review.html", item=saved)
     return jsonify({"item": saved}), 200

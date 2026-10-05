@@ -1,9 +1,83 @@
 {% extends "base.html" %}
+{% block title %}Входящие — OfferDesk{% endblock %}
+
 {% block content %}
-<h1>Входящие</h1>
-<form method="post">
-  <textarea name="text" rows="6" cols="60" placeholder="Вставьте текст..."></textarea>
-  <button type="submit">Создать</button>
-</form>
-{% if error %}<p style="color:red">{{ error }}</p>{% endif %}
+<div class="d-flex align-items-center justify-content-between mb-3 mt-3">
+  <h2 class="mb-0"><i class="bi bi-inbox"></i> Входящие</h2>
+  <a href="{{ url_for('tasks.tasks_list') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-list-task"></i> Все задачи
+  </a>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <form method="post">
+      <div class="mb-3">
+        <label for="text" class="form-label">Текст</label>
+        <textarea id="text" name="text" rows="6" class="form-control"
+                  placeholder="Вставьте задачу, заметку или идею..."
+                  required></textarea>
+        <div class="form-text">
+          Примеры: «Позвонить Сергею завтра в 10:00» · «Идея: AI-квалификатор для ИЖС» · «Купить кофе для офиса»
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Создать
+      </button>
+    </form>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<h5 class="text-muted mb-3">Последние 5</h5>
+{% if recent %}
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>ID</th><th>Тип</th><th>Заголовок</th><th>Приоритет</th>
+        <th>Срок</th><th>Источник</th><th>Проверка</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in recent %}
+      <tr>
+        <td>#{{ it.id }}</td>
+        <td>
+          {% if it.item_type == 'task' %}
+            <span class="badge text-bg-primary">task</span>
+          {% else %}
+            <span class="badge text-bg-info">note</span>
+          {% endif %}
+        </td>
+        <td>{{ it.title }}</td>
+        <td>
+          {% if it.priority == 'high' %}
+            <span class="badge text-bg-danger">high</span>
+          {% elif it.priority == 'medium' %}
+            <span class="badge text-bg-warning text-dark">medium</span>
+          {% else %}
+            <span class="badge text-bg-secondary">low</span>
+          {% endif %}
+        </td>
+        <td>{{ it.due_date or '—' }}</td>
+        <td><code>{{ it.source }}</code></td>
+        <td>
+          {% if it.needs_review %}
+            <span class="badge text-bg-danger">требует проверки</span>
+          {% else %}
+            <span class="badge text-bg-success">ok</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-muted">Пока ничего не создано.</p>
+{% endif %}
 {% endblock %}

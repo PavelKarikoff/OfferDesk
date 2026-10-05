@@ -1,15 +1,53 @@
 {% extends "base.html" %}
+{% block title %}Правка #{{ item.id }} — OfferDesk{% endblock %}
+
 {% block content %}
-<h1>Правка</h1>
-<form method="post">
-  <label>Заголовок: <input name="title" value="{{ item.title }}"></label><br>
-  <label>Приоритет:
-    <select name="priority">
-      <option value="low" {% if item.priority=='low' %}selected{% endif %}>low</option>
-      <option value="medium" {% if item.priority=='medium' %}selected{% endif %}>medium</option>
-      <option value="high" {% if item.priority=='high' %}selected{% endif %}>high</option>
-    </select>
-  </label><br>
-  <button type="submit">Сохранить</button>
+<div class="d-flex align-items-center justify-content-between mb-3 mt-3">
+  <h2 class="mb-0">
+    <i class="bi bi-pencil-square"></i> Правка #{{ item.id }}
+  </h2>
+  <a href="{{ url_for('tasks.tasks_list', status='needs_review') }}"
+     class="btn btn-outline-secondary btn-sm">
+    ← К списку
+  </a>
+</div>
+
+<div class="alert alert-warning">
+  <strong>Требует проверки:</strong>
+  <code>{{ item.review_reason or 'не указана' }}</code>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Исходный текст</dt>
+      <dd class="col-sm-9"><pre class="mb-0">{{ item.body or item.title }}</pre></dd>
+      <dt class="col-sm-3">Источник</dt>
+      <dd class="col-sm-9"><code>{{ item.source }}</code></dd>
+      <dt class="col-sm-3">Confidence</dt>
+      <dd class="col-sm-9">{{ '%.2f'|format(item.confidence or 0) }}</dd>
+    </dl>
+  </div>
+</div>
+
+<form method="post" class="card shadow-sm">
+  <div class="card-body">
+    <div class="mb-3">
+      <label class="form-label" for="title">Заголовок</label>
+      <input id="title" name="title" class="form-control"
+             value="{{ item.title }}" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="priority">Приоритет</label>
+      <select id="priority" name="priority" class="form-select">
+        <option value="low" {% if item.priority=='low' %}selected{% endif %}>low</option>
+        <option value="medium" {% if item.priority=='medium' %}selected{% endif %}>medium</option>
+        <option value="high" {% if item.priority=='high' %}selected{% endif %}>high</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-save"></i> Сохранить
+    </button>
+  </div>
 </form>
 {% endblock %}
