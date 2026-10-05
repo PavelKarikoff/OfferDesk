@@ -76,6 +76,15 @@
 | **Задачи** | `/tasks` | витрина с фильтрами и кнопкой «Выполнено» |
 | **Журнал** | `/journal` | таблица audit_runs с подсветкой needs_review |
 
+### Скриншоты
+
+| Раздел | Файл |
+|---|---|
+| Входящие — форма + последние 5 | [`docs/screenshots/tasks/capture.png`](screenshots/tasks/capture.png) |
+| Задачи — витрина с needs_review | [`docs/screenshots/tasks/list.png`](screenshots/tasks/list.png) |
+| Журнал — audit_runs | [`docs/screenshots/tasks/journal.png`](screenshots/tasks/journal.png) |
+| Правка item | [`docs/screenshots/tasks/review.png`](screenshots/tasks/review.png) |
+
 Метка «требует проверки» — красный `badge text-bg-danger` на элементах
 с `needs_review=true`.
 
