@@ -61,6 +61,18 @@ class TestSchema(unittest.TestCase):
         self.assertEqual(e.deal.financing, "не указано")
         self.assertFalse(e.required_filled()["financing"])
 
+    def test_tone_without_yo_maps_to_canon(self):
+        e = DealExtraction.model_validate({
+            "sales_signals": {"tone": "не определен"},
+        })
+        self.assertEqual(e.sales_signals.tone, "не определён")
+
+    def test_tone_aggressive_keeps_e(self):
+        e = DealExtraction.model_validate({
+            "sales_signals": {"tone": "агрессивный"},
+        })
+        self.assertEqual(e.sales_signals.tone, "агрессивный")
+
 
 class TestHelpers(unittest.TestCase):
     """Хелперы regex_fallback: _to_float, _normalize_material, _normalize_financing, _pick."""

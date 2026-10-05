@@ -10,6 +10,15 @@ Financing = Literal["ипотека", "наличные", "маткапитал"
 Sentiment = Literal["позитивный", "нейтральный", "негативный"]
 Tone = Literal["спокойный", "требовательный", "сомневающийся", "агрессивный", "не определён"]
 
+# Сравнение без «ё»: модель часто пишет «не определен».
+_TONE_CANON = {
+    "спокойный": "спокойный",
+    "требовательный": "требовательный",
+    "сомневающийся": "сомневающийся",
+    "агрессивный": "агрессивный",
+    "не определен": "не определён",
+}
+
 
 class Client(BaseModel):
     name: Optional[str] = None
@@ -54,6 +63,14 @@ class SalesSignals(BaseModel):
     sentiment: Sentiment = "нейтральный"
     competitors_mentioned: list[str] = Field(default_factory=list)
     decision_maker: Optional[bool] = None
+
+    @field_validator("tone", mode="before")
+    @classmethod
+    def _normalize_tone(cls, v):
+        if v is None or (isinstance(v, str) and not v.strip()):
+            return "не определён"
+        folded = str(v).strip().lower().replace("ё", "е")
+        return _TONE_CANON.get(folded, "не определён")
 
 
 class Confidence(BaseModel):
