@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Задачи — OfferDesk{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 mt-3">
+  <h2 class="mb-0"><i class="bi bi-check2-square"></i> Задачи</h2>
+  <a href="{{ url_for('tasks.capture') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-circle"></i> Создать
+  </a>
+</div>
+
+<div class="btn-group mb-3" role="group">
+  <a class="btn btn-sm {% if status == 'open' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+     href="{{ url_for('tasks.tasks_list', status='open') }}">В работе</a>
+  <a class="btn btn-sm {% if status == 'done' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+     href="{{ url_for('tasks.tasks_list', status='done') }}">Выполнено</a>
+  <a class="btn btn-sm {% if status == 'needs_review' %}btn-danger{% else %}btn-outline-danger{% endif %}"
+     href="{{ url_for('tasks.tasks_list', status='needs_review') }}">Требует проверки</a>
+  <a class="btn btn-sm {% if status == 'all' %}btn-secondary{% else %}btn-outline-secondary{% endif %}"
+     href="{{ url_for('tasks.tasks_list', status='all') }}">Все</a>
+</div>
+
+{% if items %}
+<div class="table-responsive">
+  <table class="table align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>ID</th><th>Тип</th><th>Заголовок</th><th>Приоритет</th>
+        <th>Срок</th><th>Статус</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in items %}
+      <tr {% if it.needs_review %}class="table-danger"{% endif %}>
+        <td>#{{ it.id }}</td>
+        <td>
+          {% if it.item_type == 'task' %}
+            <span class="badge text-bg-primary">task</span>
+          {% else %}
+            <span class="badge text-bg-info">note</span>
+          {% endif %}
+        </td>
+        <td>
+          {{ it.title }}
+          {% if it.needs_review %}
+            <span class="badge text-bg-danger ms-1">требует проверки</span>
+            {% if it.review_reason %}
+              <small class="text-muted ms-1">{{ it.review_reason }}</small>
+            {% endif %}
+          {% endif %}
+        </td>
+        <td>
+          {% if it.priority == 'high' %}
+            <span class="badge text-bg-danger">high</span>
+          {% elif it.priority == 'medium' %}
+            <span class="badge text-bg-warning text-dark">medium</span>
+          {% else %}
+            <span class="badge text-bg-secondary">low</span>
+          {% endif %}
+        </td>
+        <td>{{ it.due_date or '—' }}</td>
+        <td>
+          {% if it.status == 'done' %}
+            <span class="badge text-bg-success">done</span>
+          {% else %}
+            <span class="badge text-bg-light text-dark border">open</span>
+          {% endif %}
+        </td>
+        <td class="text-end">
+          {% if it.needs_review %}
+            <a href="{{ url_for('tasks.review', item_id=it.id) }}"
+               class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-pencil"></i> Править
+            </a>
+          {% elif it.status != 'done' %}
+            <form method="post"
+                  action="{{ url_for('tasks.mark_done', item_id=it.id) }}"
+                  class="d-inline">
+              <button type="submit" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-check2"></i> Выполнено
+              </button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-muted">Нет записей по фильтру «{{ status }}».</p>
+{% endif %}
+{% endblock %}

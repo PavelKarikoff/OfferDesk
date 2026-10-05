@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Журнал — OfferDesk{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 mt-3">
+  <h2 class="mb-0"><i class="bi bi-journal-text"></i> Журнал обработок</h2>
+</div>
+
+{% if runs %}
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>ts</th><th>Item</th><th>Источник</th><th>Статус</th>
+        <th>Причина</th><th>Confidence</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in runs %}
+      <tr {% if r.needs_review %}class="table-danger"{% endif %}>
+        <td><small>{{ r.ts }}</small></td>
+        <td>{% if r.item_id %}<a href="{{ url_for('tasks.review', item_id=r.item_id) }}">#{{ r.item_id }}</a>{% else %}—{% endif %}</td>
+        <td><code>{{ r.source }}</code></td>
+        <td>
+          {% if r.status == 'success' %}
+            <span class="badge text-bg-success">success</span>
+          {% elif r.status == 'needs_review' %}
+            <span class="badge text-bg-danger">needs_review</span>
+          {% else %}
+            <span class="badge text-bg-secondary">{{ r.status }}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if r.error %}
+            <code>{{ r.error }}</code>
+          {% else %}
+            —
+          {% endif %}
+        </td>
+        <td>{{ '%.2f'|format(r.confidence or 0) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-muted">Журнал пуст.</p>
+{% endif %}
+{% endblock %}
