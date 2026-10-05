@@ -130,3 +130,13 @@ cat reports/item_tests.md
 - Схема: Pydantic (`ItemExtraction`).
 - Fallback: regex/heuristic при недоступности LLM.
 - UI: Bootstrap 5.3.3 + Bootstrap Icons.
+
+## Прод
+
+**URL:** http://194.67.103.144:5001
+
+- LLM через NL-прокси `5.129.213.88:8888` (tinyproxy)
+- `POST /capture` → `source=llm`, `confidence 0.9+`
+- `POST /ingest` → `source=llm`, `etalon_score 86%+`, лид A
+- Fallback работает при недоступности LLM
+- Инфраструктура: BlueTerbium (194.67.103.144) → NL-прокси → OpenAI
