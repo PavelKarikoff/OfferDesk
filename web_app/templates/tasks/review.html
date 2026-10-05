@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Правка</h1>
+<form method="post">
+  <label>Заголовок: <input name="title" value="{{ item.title }}"></label><br>
+  <label>Приоритет:
+    <select name="priority">
+      <option value="low" {% if item.priority=='low' %}selected{% endif %}>low</option>
+      <option value="medium" {% if item.priority=='medium' %}selected{% endif %}>medium</option>
+      <option value="high" {% if item.priority=='high' %}selected{% endif %}>high</option>
+    </select>
+  </label><br>
+  <button type="submit">Сохранить</button>
+</form>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Журнал</h1>
+<table>
+<tr><th>ts</th><th>item_id</th><th>source</th><th>status</th><th>error</th></tr>
+{% for r in runs %}
+  <tr><td>{{ r.ts }}</td><td>{{ r.item_id }}</td><td>{{ r.source }}</td><td>{{ r.status }}</td><td>{{ r.error or '' }}</td></tr>
+{% endfor %}
+</table>
+{% endblock %}
