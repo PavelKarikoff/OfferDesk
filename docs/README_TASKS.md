@@ -41,6 +41,7 @@
 | `POST` | `/capture` | текст → item + запись в `audit_runs` |
 | `GET` | `/capture` | форма ввода + последние 5 |
 | `GET` | `/tasks` | витрина с фильтром `?status=open\|done\|needs_review\|all` |
+| `POST` | `/tasks/extract` | ИИ → строгий JSON, **без записи в БД** |
 | `POST` | `/tasks/<id>/done` | статус `done` |
 | `GET`/`POST` | `/tasks/<id>/review` | правка title/priority + снятие needs_review |
 | `GET` | `/journal` | журнал `audit_runs` |
@@ -66,7 +67,7 @@
 Таблицы:
 
 - **`items`** — задачи и заметки (item_type, title, body, priority, due_date, status, needs_review, review_reason, source, confidence, created_at, updated_at).
-- **`audit_runs`** — журнал обработок (item_id, ts, source, status, input_text, result_json, error, confidence, needs_review).
+- **`audit_runs`** — журнал обработок (item_id, action, ts, source, status, input_text, result_json, error, duration_ms, confidence, needs_review).
 
 ## Веб-панель (3 раздела)
 
@@ -74,6 +75,7 @@
 |---|---|---|
 | **Входящие** | `/capture` | форма ввода + последние 5 items |
 | **Задачи** | `/tasks` | витрина с фильтрами и кнопкой «Выполнено» |
+| **Карточка** | `/tasks/<id>` | детали + audit + **сырой ввод/вывод JSON** |
 | **Журнал** | `/journal` | таблица audit_runs с подсветкой needs_review |
 
 ### Скриншоты
@@ -117,11 +119,11 @@ cat reports/item_tests.md
 
 | Критерий ТЗ | Реализация | Доказательство |
 |---|---|---|
-| `POST /capture` создаёт task/note и возвращает корректный `item_type` | `routes_tasks.py:capture()` | curl + `/capture` UI + `reports/item_tests.md` |
-| `GET /tasks` показывает созданные задачи | `routes_tasks.py:tasks_list()` | `/tasks` скриншот |
-| `POST /tasks/{id}/done` реально меняет статус | `routes_tasks.py:mark_done()` | curl + скриншот «Выполнено» |
-| Минимум 1 «плохой» вход → `needs_review=true` + виден в веб-панели | `item_pipeline.py:is_ambiguous()` | `bad_01.txt` в `/tasks?status=needs_review` |
-| В `audit_runs` видно 10+ запусков и причины ручной проверки | таблица `audit_runs` | sqlite3 + `/journal` |
+| **API — 3 точки** | `/capture`, `/tasks`, `/tasks/extract` | curl на проде |
+| **audit_runs:** action, input, output, status, error, duration_ms, created_at | таблица `audit_runs` | `sqlite3` |
+| **needs_review** | `item_pipeline.py:is_ambiguous()` | `bad_01.txt` |
+| **Веб-панель — 3 экрана** | `/tasks`, `/tasks/<id>`, `/journal` | скриншоты |
+| **Мини-экономика** | раздел 8 `ОТЧЁТ_ДИПЛОМ_ZEROCODER.md` | отчёт |
 
 ## Стек
 
