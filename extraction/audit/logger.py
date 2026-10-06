@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+import time
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -103,6 +105,54 @@ def log_extraction(
         "audit_log: deal=%s source=%s status=%s grade=%s",
         deal_id, source, status, lead.grade if lead else None,
     )
+    return cur.lastrowid
+
+
+@contextmanager
+def _timer():
+    """Контекстный менеджер: замер времени."""
+    start = time.perf_counter()
+    result = {"duration_ms": 0}
+    try:
+        yield result
+    finally:
+        result["duration_ms"] = int((time.perf_counter() - start) * 1000)
+
+
+def log_item(
+    conn: sqlite3.Connection,
+    *,
+    item_id: Optional[int],
+    item,                      # ItemExtraction
+    source: str,
+    action: str,               # capture / extract / review
+    input_text: str,
+    duration_ms: int,
+    status: str = "success",
+    error: str = "",
+) -> int:
+    """Пишет строку в audit_runs для Personal Assistant."""
+    row = (
+        item_id,
+        action,
+        datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        source,
+        status,
+        (input_text or "")[:5000],
+        item.model_dump_json() if item else None,
+        error[:2000] if error else None,
+        duration_ms,
+        float(item.confidence) if item else 0.0,
+        1 if (item and item.needs_review) else 0,
+    )
+    cur = conn.execute(
+        """INSERT INTO audit_runs
+           (item_id, action, ts, source, status, input_text, result_json,
+            error, duration_ms, confidence, needs_review)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        row,
+    )
+    conn.commit()
     return cur.lastrowid
 
 
