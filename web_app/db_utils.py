@@ -100,17 +100,19 @@ def ensure_items_table(conn: sqlite3.Connection) -> None:
 
 
 def ensure_audit_runs_table(conn: sqlite3.Connection) -> None:
-    """Таблица audit_runs — журнал обработок по ТЗ варианта 1."""
+    """Таблица audit_runs — журнал обработок по ТЗ выпускного."""
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS audit_runs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             item_id INTEGER,
+            action TEXT NOT NULL DEFAULT 'extract',   -- capture / extract / review
             ts TEXT NOT NULL,
             source TEXT NOT NULL,
-            status TEXT NOT NULL,                         -- success / needs_review / error
+            status TEXT NOT NULL,
             input_text TEXT,
             result_json TEXT,
-            error TEXT,                                   -- LOW_CONFIDENCE | INVALID_JSON | SCHEMA_MISMATCH | AMBIGUOUS_INPUT
+            error TEXT,
+            duration_ms INTEGER,                       -- время обработки
             confidence REAL,
             needs_review INTEGER NOT NULL DEFAULT 0
         );
@@ -118,4 +120,19 @@ def ensure_audit_runs_table(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_audit_runs_ts ON audit_runs(ts);
         CREATE INDEX IF NOT EXISTS idx_audit_runs_status ON audit_runs(status);
     """)
+
+    # Идемпотентная миграция для существующих БД.
+    # Индекс по action — после ALTER: на старой таблице колонки ещё нет,
+    # и индекс внутри executescript оборвал бы скрипт до миграции.
+    for sql in [
+        "ALTER TABLE audit_runs ADD COLUMN action TEXT NOT NULL DEFAULT 'extract'",
+        "ALTER TABLE audit_runs ADD COLUMN duration_ms INTEGER",
+    ]:
+        try:
+            conn.execute(sql)
+        except sqlite3.OperationalError:
+            pass
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_audit_runs_action ON audit_runs(action)"
+    )
     conn.commit()

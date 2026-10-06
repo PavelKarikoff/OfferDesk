@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}#{{ item.id }} — OfferDesk{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 mt-3">
+  <h2 class="mb-0">
+    <i class="bi bi-file-text"></i> #{{ item.id }} — {{ item.title }}
+  </h2>
+  <a href="{{ url_for('tasks.tasks_list') }}" class="btn btn-outline-secondary btn-sm">
+    ← К списку
+  </a>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Тип</dt>
+      <dd class="col-sm-9">
+        <span class="badge text-bg-{{ 'primary' if item.item_type == 'task' else 'info' }}">
+          {{ item.item_type }}
+        </span>
+      </dd>
+      <dt class="col-sm-3">Приоритет</dt>
+      <dd class="col-sm-9">{{ item.priority }}</dd>
+      <dt class="col-sm-3">Срок</dt>
+      <dd class="col-sm-9">{{ item.due_date or '—' }}</dd>
+      <dt class="col-sm-3">Статус</dt>
+      <dd class="col-sm-9">{{ item.status }}</dd>
+      <dt class="col-sm-3">Проверка</dt>
+      <dd class="col-sm-9">
+        {% if item.needs_review %}
+          <span class="badge text-bg-danger">требует проверки</span>
+          <code>{{ item.review_reason or '' }}</code>
+        {% else %}
+          <span class="badge text-bg-success">ok</span>
+        {% endif %}
+      </dd>
+    </dl>
+  </div>
+</div>
+
+{% if run %}
+<h5 class="text-muted mb-2">Аудит обработки</h5>
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Action</dt>
+      <dd class="col-sm-9"><code>{{ run.action }}</code></dd>
+      <dt class="col-sm-3">Источник</dt>
+      <dd class="col-sm-9"><code>{{ run.source }}</code></dd>
+      <dt class="col-sm-3">Status</dt>
+      <dd class="col-sm-9">{{ run.status }}</dd>
+      <dt class="col-sm-3">Duration</dt>
+      <dd class="col-sm-9">{{ run.duration_ms or 0 }} ms</dd>
+      <dt class="col-sm-3">Confidence</dt>
+      <dd class="col-sm-9">{{ '%.2f'|format(run.confidence or 0) }}</dd>
+      {% if run.error %}
+      <dt class="col-sm-3">Error</dt>
+      <dd class="col-sm-9"><code>{{ run.error }}</code></dd>
+      {% endif %}
+    </dl>
+  </div>
+</div>
+
+<h5 class="text-muted mb-2">Сырой ввод</h5>
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <pre class="mb-0" style="white-space: pre-wrap;">{{ run.input_text or '—' }}</pre>
+  </div>
+</div>
+
+{% if run.result_parsed %}
+<h5 class="text-muted mb-2">Сырой вывод модели (JSON)</h5>
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <pre class="mb-0" style="white-space: pre-wrap;">{{ run.result_pretty }}</pre>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+
+<div class="d-flex gap-2">
+  <a href="{{ url_for('tasks.review', item_id=item.id) }}" class="btn btn-outline-primary">
+    <i class="bi bi-pencil"></i> Править
+  </a>
+  {% if item.status != 'done' %}
+  <form method="post" action="{{ url_for('tasks.mark_done', item_id=item.id) }}">
+    <button type="submit" class="btn btn-outline-success">
+      <i class="bi bi-check2"></i> Выполнено
+    </button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

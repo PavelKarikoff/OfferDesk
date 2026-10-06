@@ -2,7 +2,9 @@
 
 POST /capture                 — текст → Item, запись в items и audit_runs
 GET  /capture                 — форма захвата
+POST /tasks/extract           — текст → строгий JSON, без записи в БД
 GET  /tasks                   — витрина
+GET  /tasks/<id>              — карточка: детали и сырой ввод/вывод
 POST /tasks/<id>/done         — отметка выполненной
 GET  /tasks/<id>/review       — карточка на проверку
 POST /tasks/<id>/review       — снять needs_review
@@ -17,6 +19,7 @@ import json
 import logging
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -135,7 +138,7 @@ def _input_text() -> str:
     return (data.get("text") or data.get("transcript") or request.form.get("text") or "").strip()
 
 
-def _save_item(conn, text: str, item, source: str, meta: dict) -> dict:
+def _save_item(conn, item, source: str) -> dict:
     now = _now()
     due = item.due_date.isoformat() if item.due_date else None
     cur = conn.execute(
@@ -164,27 +167,42 @@ def _save_item(conn, text: str, item, source: str, meta: dict) -> dict:
     payload = item.to_dict()
     payload["id"] = item_id
     payload["status"] = "open"
+    conn.commit()
+    return payload
+
+
+def _insert_audit_run(
+    conn,
+    item_id,
+    item,
+    source,
+    *,
+    action="capture",
+    input_text="",
+    duration_ms=0,
+    status="success",
+    error=None,
+):
     conn.execute(
-        """
-        INSERT INTO audit_runs (
-            item_id, ts, source, status, input_text, result_json,
-            error, confidence, needs_review
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
+        """INSERT INTO audit_runs
+           (item_id, action, ts, source, status, input_text, result_json,
+            error, duration_ms, confidence, needs_review)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             item_id,
-            now,
+            action,
+            _now(),
             source,
-            _audit_status(item, source),
-            text,
-            json.dumps(payload, ensure_ascii=False),
-            item.review_reason or (meta.get("error") or None),
-            float(item.confidence or 0.0),
-            1 if item.needs_review else 0,
+            status,
+            (input_text or "")[:5000],
+            item.model_dump_json() if item else None,
+            error,
+            duration_ms,
+            float(item.confidence) if item else 0.0,
+            1 if (item and item.needs_review) else 0,
         ),
     )
     conn.commit()
-    return payload
 
 
 def _load_item(conn, item_id: int):
@@ -219,8 +237,21 @@ def capture():
 
     conn = connect_db()
     try:
+        start = time.perf_counter()
         item, source, meta = extract_item(text)
-        saved = _save_item(conn, text, item, source, meta)
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        saved = _save_item(conn, item, source)
+        _insert_audit_run(
+            conn,
+            saved["id"],
+            item,
+            source,
+            action="capture",
+            input_text=text,
+            duration_ms=duration_ms,
+            status=_audit_status(item, source),
+            error=item.review_reason or (meta.get("error") or None),
+        )
     except Exception as e:
         logger.exception("capture: failed")
         conn.close()
@@ -233,6 +264,31 @@ def capture():
         return redirect(url_for("tasks.tasks_list"))
 
     return jsonify({"source": source, "item": saved, "meta": meta}), 200
+
+
+@tasks_bp.route("/tasks/extract", methods=["POST"])
+def tasks_extract():
+    """Точка 3: текст → строгий JSON по ItemExtraction. Без записи в БД.
+
+    Принимает: {"text": "..."} (JSON) или form-data с text.
+    Возвращает: {"source": "...", "item": {...}, "meta": {...}}
+    """
+    if not _allowed():
+        return jsonify({"error": "unauthorized"}), 401
+
+    data = request.get_json(silent=True) or {}
+    text = (data.get("text") or request.form.get("text") or "").strip()
+
+    if not text:
+        return jsonify({"error": "text is required"}), 400
+
+    item, source, meta = extract_item(text)
+
+    return jsonify({
+        "source": source,
+        "item": item.to_dict(),
+        "meta": meta,
+    }), 200
 
 
 @tasks_bp.route("/tasks", methods=["GET"])
@@ -263,6 +319,42 @@ def tasks_list():
     if _wants_json():
         return jsonify({"items": items}), 200
     return render_template("tasks/list.html", items=items, status=status)
+
+
+@tasks_bp.route("/tasks/<int:item_id>")
+def task_detail(item_id: int):
+    """Карточка item: детали + сырой ввод/вывод из audit_runs."""
+    if not _allowed():
+        return jsonify({"error": "unauthorized"}), 401
+
+    conn = connect_db()
+    try:
+        item = conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
+        if not item:
+            return "Not found", 404
+
+        run = conn.execute(
+            """SELECT * FROM audit_runs WHERE item_id = ?
+               ORDER BY id DESC LIMIT 1""",
+            (item_id,),
+        ).fetchone()
+
+        item_d = _item_dict(item)
+        run_d = dict(run) if run else None
+    finally:
+        conn.close()
+
+    if run_d and run_d.get("result_json"):
+        try:
+            run_d["result_parsed"] = json.loads(run_d["result_json"])
+        except (json.JSONDecodeError, TypeError):
+            run_d["result_parsed"] = None
+        if run_d.get("result_parsed") is not None:
+            run_d["result_pretty"] = json.dumps(
+                run_d["result_parsed"], ensure_ascii=False, indent=2
+            )
+
+    return render_template("tasks/detail.html", item=item_d, run=run_d)
 
 
 @tasks_bp.route("/tasks/<int:item_id>/done", methods=["POST"])

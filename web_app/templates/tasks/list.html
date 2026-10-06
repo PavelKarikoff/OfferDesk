@@ -41,7 +41,9 @@
           {% endif %}
         </td>
         <td>
-          {{ it.title }}
+          <a href="{{ url_for('tasks.task_detail', item_id=it.id) }}" class="text-decoration-none">
+            {{ it.title }}
+          </a>
           {% if it.needs_review %}
             <span class="badge text-bg-danger ms-1">требует проверки</span>
             {% if it.review_reason %}
