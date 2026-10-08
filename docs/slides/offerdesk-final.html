@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>OfferDesk — финальная презентация. Две части</title>
+  <style>
+    @page { size: 338.7mm 190.5mm; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #0e1318; }
+    body {
+      font-family: "PT Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: #f4f1ea;
+    }
+
+    .slide {
+      width: 338.7mm;
+      height: 190.5mm;
+      padding: 12mm 16mm 16mm;
+      position: relative;
+      overflow: hidden;
+      page-break-after: always;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      display: flex;
+      flex-direction: column;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      background:
+        radial-gradient(1100px 480px at -8% -18%, rgba(196,181,154,.10), transparent 55%),
+        radial-gradient(700px 360px at 110% 120%, rgba(107,154,120,.07), transparent 50%),
+        #0e1318;
+    }
+    .slide:last-child { page-break-after: auto; }
+    .left-gold {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+      background: linear-gradient(180deg, #e0d0b4, #6b5844);
+    }
+
+    .kicker {
+      letter-spacing: .26em;
+      font-size: 11px;
+      color: #c4b59a;
+      text-transform: uppercase;
+      font-weight: 700;
+      flex: 0 0 auto;
+    }
+    h1 {
+      font-family: "PT Serif", Georgia, serif;
+      font-size: 32px;
+      font-weight: 600;
+      margin: 6px 0 12px;
+      letter-spacing: -.02em;
+      line-height: 1.12;
+      flex: 0 0 auto;
+    }
+    h1.hero {
+      font-size: 64px;
+      margin: 6px 0 6px;
+      letter-spacing: -.035em;
+      font-weight: 700;
+      line-height: 0.95;
+    }
+    h1.hero span { color: #c4b59a; }
+
+    footer.bar {
+      position: absolute;
+      left: 16mm; right: 16mm; bottom: 6mm;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11px; letter-spacing: .18em; color: #9a8f7a; text-transform: uppercase;
+    }
+    .gold-rule {
+      height: 1px; width: 72mm; border: 0;
+      background: linear-gradient(90deg, #c4b59a, transparent);
+      margin: 10px 0 14px;
+    }
+
+    .grow { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; min-height: 0; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; flex: 1; min-height: 0; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; flex: 1; min-height: 0; }
+    .grid-13 { display: grid; grid-template-columns: .9fr 1.1fr; gap: 14px; flex: 1; min-height: 0; }
+
+    .card {
+      background: #1a222b;
+      border: 1px solid #2c3640;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .card h2 {
+      font-size: 12px; margin: 0 0 8px; color: #c4b59a;
+      font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    }
+    .card.part1 { border-top: 3px solid #c4b59a; }
+    .card.part2 { border-top: 3px solid #8fcaa0; }
+
+    .stat {
+      font-family: "PT Serif", Georgia, serif;
+      font-size: 34px; font-weight: 700; line-height: 1; margin: 2px 0 6px;
+    }
+    .stat.bad { color: #e07a6a; }
+    .stat.good { color: #8fcaa0; }
+    .stat.gold { color: #e0d0b4; }
+    .muted { color: #c8bfb2; font-size: 15px; line-height: 1.4; margin: 0; }
+    .tiny { font-size: 12px; color: #9a8f7a; line-height: 1.35; margin: 0; }
+    p, li { font-size: 15px; line-height: 1.4; margin: 0 0 6px; }
+    ul { margin: 0; padding-left: 18px; }
+    code, .mono {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      color: #e0d0b4;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left; color: #c4b59a; font-size: 11px;
+      letter-spacing: .1em; text-transform: uppercase; font-weight: 700;
+      padding: 8px 8px; border-bottom: 1px solid #2c3640;
+    }
+    td { padding: 8px 8px; border-bottom: 1px solid #24303a; vertical-align: top; font-size: 14px; }
+    tr:last-child td { border-bottom: 0; }
+
+    .pill {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 11px; background: #24303a; color: #e0d0b4; letter-spacing: .02em;
+    }
+    .pill.green { background: #163428; color: #b6ecc4; }
+    .pill.red { background: #3a1e1c; color: #f0b0a6; }
+
+    .quote {
+      flex: 0 0 auto;
+      background: #1a222b;
+      border: 1px solid #3a3126;
+      border-left: 3px solid #c4b59a;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: "PT Serif", Georgia, serif;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .num {
+      font-family: "PT Serif", Georgia, serif;
+      font-size: 28px; color: #c4b59a; font-weight: 700; line-height: 1;
+      margin-bottom: 6px;
+    }
+    .endpoint {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 15px; color: #f4f1ea; margin: 0 0 8px;
+    }
+
+    .shots { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; flex: 0 0 auto; align-items: start; }
+    .shot { display: flex; flex-direction: column; min-height: 0; }
+    .shot-wrap {
+      background: #e8edf2; border-radius: 8px; overflow: hidden;
+      border: 1px solid #2c3640; height: 58mm; flex: none;
+    }
+    .shot-wrap img {
+      width: 100%; height: 100%; object-fit: contain; object-position: center center;
+      display: block; background: #e8edf2;
+    }
+    .shot-cap { font-size: 12.5px; color: #c8bfb2; margin-top: 6px; line-height: 1.3; }
+    .shot-cap strong { color: #e0d0b4; font-weight: 700; }
+
+    .title-sub {
+      font-size: 22px; color: #e0d0b4; margin: 0 0 16px;
+      font-family: "PT Serif", Georgia, serif; font-weight: 400; line-height: 1.25;
+    }
+    .meta-line { font-size: 16px; color: #c4b59a; margin: 0 0 6px; }
+    .meta-dim { font-size: 15px; color: #b8b0a2; margin: 0 0 4px; }
+
+    .pair { display: flex; align-items: baseline; gap: 10px; }
+    .arrow-gold { color: #c4b59a; font-size: 28px; font-family: "PT Serif", Georgia, serif; }
+
+    .schema {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 13px; line-height: 1.45; color: #e8e0d4; margin: 0;
+      white-space: pre;
+    }
+
+    .heat-bad { background: #3a1e1c; color: #f0b0a6; font-weight: 700; text-align: center; border-radius: 4px; }
+    .heat-ok { background: #163428; color: #b6ecc4; font-weight: 700; text-align: center; border-radius: 4px; }
+
+    .split-stat { display: flex; align-items: flex-end; gap: 14px; }
+    .split-stat .from { color: #e07a6a; }
+    .split-stat .to { color: #8fcaa0; }
+  </style>
+</head>
+<body>
+
+<!-- 01 TITLE -->
+<section class="slide">
+  <div class="left-gold"></div>
+  <div class="grid-13" style="align-items: stretch; margin-bottom: 6mm;">
+    <div style="display:flex; flex-direction:column; justify-content:center; padding-right: 6mm;">
+      <div class="kicker">Выпускной проект · Вайбкодинг Профессия</div>
+      <hr class="gold-rule">
+      <h1 class="hero">Offer<span>Desk</span></h1>
+      <p class="title-sub">Две части одного репозитория.<br>Текст становится действием — и не врёт, когда не уверен.</p>
+      <p class="meta-line">Павел Кариков · 8 октября 2026</p>
+      <p class="meta-dim">Сдаётся вариант 1 — персональный помощник «от текста до действия»</p>
+      <p class="meta-dim" style="margin-top:10px;">github.com/PavelKarikoff/OfferDesk</p>
+      <p class="meta-dim">прод · 194.67.103.144:5001</p>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:12px; min-height:0;">
+      <div class="card part1" style="flex:1; justify-content:center;">
+        <h2>Часть I · OfferDesk</h2>
+        <p style="font-family:'PT Serif',Georgia,serif; font-size:26px; margin:4px 0 8px;">AI-квалификатор лидов ИЖС</p>
+        <p class="muted">Заявка или звонок → строгий JSON → сделка, грейд A/B/C, эскалация, черновик КП.</p>
+      </div>
+      <div class="card part2" style="flex:1; justify-content:center;">
+        <h2>Часть II · Personal Assistant · вариант 1</h2>
+        <p style="font-family:'PT Serif',Georgia,serif; font-size:26px; margin:4px 0 8px;">От текста до действия</p>
+        <p class="muted">Входящая мысль → задача или заметка. Если модель не уверена — запись уходит на ручную проверку, без выдуманных полей.</p>
+      </div>
+    </div>
+  </div>
+  <footer class="bar"><span>OfferDesk · финал</span><span>01 / 12</span></footer>
+</section>
+
+<!-- 02 TWO PARTS -->
+<section class="slide">
+  <div class="left-gold"></div>
+  <div class="kicker">Один стек · два продукта</div>
+  <h1>Зачем две части</h1>
+  <div class="grid-2" style="flex: none;">
+    <div class="card part1">
+      <h2>Часть I · для отдела продаж</h2>
+      <div class="stat bad">30–40%</div>
+      <p class="muted">лидов «Дом-Мастер» остывают: норма реакции 15 минут, факт — часы. Одно КП вручную занимает 40–60 минут. Средний чек 8 млн ₽, маржа 15% — 1,2 млн ₽ с дома.</p>
+      <p class="muted" style="margin-top:10px;">OfferDesk забирает сырой текст заявки, достаёт поля по схеме и отдаёт менеджеру сделку, которую можно проверить, а не переписывать с нуля.</p>
+    </div>
+    <div class="card part2">
+      <h2>Часть II · для человека и маленькой команды</h2>
+      <div class="stat gold" style="font-size:30px;">текст → дело</div>
+      <p class="muted">Поручения живут в чатах и заметках: «позвонить», «не забыть», «идея». Часть так и не становится задачей.</p>
+      <p class="muted" style="margin-top:10px;">Помощник кладёт текст в таблицу <code>items</code>, показывает его в панели и ставит <code>needs_review</code>, когда вход слишком общий или модель ответила плохо.</p>
+    </div>
+  </div>
+  <p class="quote">Общие слои: Flask, SQLite <code>deals.db</code>, OpenAI gpt-4o-mini, Pydantic, температура 0.2. Модель структурирует. Код решает, можно ли верить ответу.</p>
+  <footer class="bar"><span>OfferDesk · финал</span><span>02 / 12</span></footer>
+</section>
+
+<!-- 03 CHECKLIST -->
+<section class="slide">
+  <div class="left-gold"></div>
+  <div class="kicker">Общие требования · обе части</div>
+  <h1>Пять требований чеклиста</h1>
+  <div class="card" style="flex:1; padding: 6px 14px 8px;">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:24%;">Требование</th>
+          <th style="width:38%;">Часть I · OfferDesk</th>
+          <th style="width:38%;">Часть II · вариант 1</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. Три точки API</strong><br><span class="tiny">создать · витрина · ИИ</span></td>
+          <td><code>POST /deals/new</code> — сделка в БД<br><code>GET /deals</code> — список<br><code>POST /ingest</code> — JSON <code>DealExtraction</code></td>
+          <td><code>POST /capture</code> — item в БД<br><code>GET /tasks</code> — список<br><code>POST /tasks/extract</code> — JSON без записи item</td>
+        </tr>
+        <tr>
+          <td><strong>2. База и аудит</strong><br><span class="tiny">каждый запуск</span></td>
+          <td><code>deals</code>, <code>users</code>, <code>action_log</code><br><code>audit_log</code>: вход, JSON, status, ошибка</td>
+          <td><code>items</code> + <code>audit_runs</code><br>action, input, output, status, error, duration_ms, ts</td>
+        </tr>
+        <tr>
+          <td><strong>3. Ручная проверка</strong><br><span class="tiny">без выдумок</span></td>
+          <td>Эскалация: <code>legal_risk</code>, <code>llm_failed</code>, <code>insufficient_data</code>, <code>validation_failed</code></td>
+          <td><code>needs_review</code> и причина:<br><code>LOW_CONFIDENCE</code>, <code>INVALID_JSON</code>, <code>SCHEMA_MISMATCH</code>, <code>AMBIGUOUS_INPUT</code></td>
+        </tr>
+        <tr>
+          <td><strong>4. Три экрана</strong></td>
+          <td>список <code>/deals</code><br>карточка сделки<br>эскалация и журнал разбора</td>
+          <td>список <code>/tasks</code><br>карточка <code>/tasks/&lt;id&gt;</code><br>журнал <code>/journal</code></td>
+        </tr>
+        <tr>
+          <td><strong>5. Экономика</strong><br><span class="tiny">на салфетке</span></td>
+          <td colspan="2">1 операция: ~50 мин → ~6 мин. 100 операций: 41 500 ₽ → ~6 400 ₽. Ценность — скорость реакции, не только часы.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <footer class="bar"><span>OfferDesk · финал</span><span>03 / 12</span></footer>
+</section>
+
+<!-- 04 PART I API -->
+<section class="slide">
+  <div class="left-gold"></div>
+  <div class="kicker">Часть I · сервер</div>
+  <h1>Три точки квалификатора</h1>
+  <div class="grid-3">
+    <div class="card part1">
+      <div class="num">01</div>
+      <h2>Создать</h2>
+      <p class="endpoint">POST /deals/new</p>
+      <p class="muted">Менеджер вставляет транскрибацию или файл. Пайплайн извлекает поля, считает эталон и пишет сделку в <code>deals</code>.</p>
+    </div>
+    <div class="card part1">
+      <div class="num">02</div>
+      <h2>Витрина</h2>
+      <p class="endpoint">GET /deals</p>
+      <p class="muted">Таблица рабочего места: клиент, бюджет, статус, можно ли собирать КП. Отсюда открывается карточка.</p>
+    </div>
+    <div class="card part1">
+      <div class="num">03</div>
+      <h2>ИИ-обработка</h2>
+      <p class="endpoint">POST /ingest</p>
+      <p class="muted">Публичный JSON-вход. Возвращает <code>DealExtraction</code>, грейд и действие. Карточку сделки не создаёт — результат ложится в <code>audit_log</code>.</p>
+    </div>
+  </div>
+  <div class="card" style="flex:0 0 auto;">
+    <h2>Что возвращает модель и что решает код</h2>
+    <p class="muted" style="margin:0;">Схема: клиент, объект, бюджет, финансирование, тон, уверенность, пустые поля. Дальше код, не модель: валидация, эскалация, грейд A/B/C, конверт <code>action</code>. Цена КП считается по прайсу компании.</p>
+  </div>
+  <footer class="bar"><span>Часть I · OfferDesk</span><span>04 / 12</span></footer>
+</section>
+
+<!-- 05 PART I DATA + REVIEW -->
+<section class="slide">
+  <div class="left-gold"></div>
+  <div class="kicker">Часть I · база и ручная проверка</div>
+  <h1>Сделка пишется. Сомнение — тоже</h1>
+  <div class="grid-2">
+    <div class="card">
+      <h2>Таблицы</h2>
+      <table>
+        <tr><td style="width:34%; color:#e0d0b4;"><code>deals</code></td><td>Рабочая сущность: клиент, объект, бюджет, статус, эталон, источник разбора</td></tr>
+        <tr><td style="color:#e0d0b4;"><code>audit_log</code></td><td>Каждый разбор: вход, JSON, source, status, ошибка, грейд, эскалация</td></tr>
+        <tr><td style="color:#e0d0b4;"><code>action_log</code></td><td>Действия менеджера: создал, правил, собрал КП, отправил, сменил статус</td></tr>
+        <tr><td style="color:#e0d0b4;"><code>users</code></td><td>Роли manager / admin</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Когда человек обязателен</h2>
+      <p class="muted">Эскалация не прячет слабый разбор. Сделка остаётся, но помечается причиной:</p>
+      <ul>
+        <li><code>legal_risk</code> — суд, юрист, угроза в тексте</li>
+        <li><code>llm_failed</code> — модель недоступна, сработал regex</li>
+        <li><code>insufficient_data</code> — эталон ниже 30</li>
+        <li><code>validation_failed</code> — бюджет, площадь, телефон, почта</li>
+      </ul>
+      <p class="tiny" style="margin-top:8px;">Безопасный контур: LLM упал → regex, процесс не останавливается, в журнал пишется ошибка. Выдуманная цена не появляется.</p>
+    </div>
+  </div>
+  <footer class="bar"><span>Часть I · OfferDesk</span><span>05 / 12</span></footer>
+</section>
+
+<!-- 06 PART I SCREENS -->
+<section class="slide">
+  <div class="left-gold"></div>
+  <div class="kicker">Часть I · веб-панель</div>
+  <h1>Три экрана менеджера</h1>
+  <div class="shots">
+    <div class="shot">
+      <div class="shot-wrap"><img src="../screenshots/Все_сделки.png" alt="Список сделок"></div>
+      <p class="shot-cap"><strong>Витрина.</strong> <code>/deals</code> — очередь сделок, статусы, переход в карточку.</p>
+    </div>
+    <div class="shot">
+      <div class="shot-wrap"><img src="../screenshots/Карточка_сделки.png" alt="Карточка сделки"></div>
+      <p class="shot-cap"><strong>Карточка.</strong> Поля разбора, сырой протокол, эталон и действия: КП, статус, правка.</p>
+    </div>
+    <div class="shot">
+      <div class="shot-wrap"><img src="../screenshots/prod_deal_card_escalation.png" alt="Карточка с эскалацией"></div>
+      <p class="shot-cap"><strong>Проверка.</strong> Эскалация на карточке: лид C, эталон 43%. Причина пишется в <code>audit_log</code>.</p>
+    </div>
+  </div>
+  <div class="grid-3" style="margin-top: 10px; flex: none;">
+    <div class="card">
+      <h2>Список</h2>
+      <p class="muted" style="margin:0;">Очередь, а не чат. Видно, где данных хватает на КП, а где сделку надо добрать.</p>
+    </div>
+    <div class="card">
+      <h2>Карточка</h2>
+      <p class="muted" style="margin:0;">Поля разбора рядом с сырым протоколом. Менеджер сверяет, а не верит заголовку.</p>
+    </div>
+    <div class="card">
+      <h2>Проверка</h2>
+      <p class="muted" style="margin:0;">Слабый разбор не выглядит обычной сделкой: бейдж эскалации, низкий эталон, запись в журнале.</p>
+    </div>
+  </div>
+  <footer class="bar"><span>Часть I · OfferDesk</span><span>06 / 12</span></footer>
+</section>
+
+<!-- 07 PART II FLOW -->
+<section class="slide">
+  <div class="left-gold"></div>
+  <div class="kicker">Часть II · вариант 1</div>
+  <h1>От текста до действия</h1>
+  <div class="grid-3">
+    <div class="card part2">
+      <div class="num">01</div>
+      <h2>Создать</h2>
+      <p class="endpoint">POST /capture</p>
+      <p class="muted">«Позвонить Сергею завтра в 10:00». Модель возвращает task, приоритет и срок. Строка появляется в <code>items</code>, запуск — в <code>audit_runs</code>.</p>
+    </div>
+    <div class="card part2">
+      <div class="num">02</div>
+      <h2>Витрина</h2>
+      <p class="endpoint">GET /tasks</p>
+      <p class="muted">Фильтры «В работе», «Выполнено», «Требует проверки», «Все». Кнопка «Выполнено» ставит статус <code>done</code>.</p>
+    </div>
+    <div class="card part2">
+      <div class="num">03</div>
+      <h2>ИИ без записи</h2>
+      <p class="endpoint">POST /tasks/extract</p>
+      <p class="muted">Тот же разбор, но сущность не создаётся. Ответ — строгий JSON. В аудит пишется запуск с пустым <code>item_id</code>.</p>
+    </div>
+  </div>
+  <div class="grid-3" style="flex: 0.72;">
+    <div class="card"><h2>Сценарий</h2><p class="muted" style="margin:0;">Вставил текст на <code>/capture</code> → увидел задачу в «Последних 5».</p></div>
+    <div class="card"><h2>Сценарий</h2><p class="muted" style="margin:0;">Открыл <code>/tasks</code>, отфильтровал, закрыл выполненное.</p></div>
+    <div class="card"><h2>Сценарий</h2><p class="muted" style="margin:0;">Красный бейдж → карточка → правка заголовка → снятие с проверки.</p></div>
+  </div>
+  <footer class="bar"><span>Часть II · Personal Assistant</span><span>07 / 12</span></footer>
+</section>
+
+<!-- 08 REVIEW -->
+<section class="slide">
+  <div class="left-gold"></div>
+  <div class="kicker">Часть II · ручная проверка</div>
+  <h1>Система не делает вид, что уверена</h1>
+  <div class="grid-13">
+    <div class="card">
+      <h2>ItemExtraction · temperature 0.2</h2>
+      <p class="schema">{
+  "item_type": "task | note",
+  "title": "≤ 80 символов",
+  "priority": "low | medium | high",
+  "due_date": "YYYY-MM-DD | null",
+  "tags": ["…"],
+  "confidence": 0.0,
+  "needs_review": false,
+  "review_reason": null
+}</p>
+      <p class="tiny" style="margin-top:8px;">Пустой текст → HTTP 400, модель не вызывается. Дата «завтра» считается от строки «Сегодня: YYYY-MM-DD» в промпте.</p>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px; min-height:0;">
+      <div class="grid-2" style="flex:1;">
+        <div class="card"><h2>LOW_CONFIDENCE</h2><p class="muted" style="margin:0;"><code>confidence &lt; 0.5</code></p></div>
+        <div class="card"><h2>INVALID_JSON</h2><p class="muted" style="margin:0;">Ответ не JSON или модель упала</p></div>
+        <div class="card"><h2>SCHEMA_MISMATCH</h2><p class="muted" style="margin:0;">JSON не прошёл Pydantic</p></div>
+        <div class="card"><h2>AMBIGUOUS_INPUT</h2><p class="muted" style="margin:0;">«сделай важное», слишком общий вход</p></div>
+      </div>
+      <div class="card part2" style="flex:0 0 auto;">
+        <h2>Безопасный ответ · прогон bad_01</h2>
+        <p class="muted" style="margin:0;">Вход «сделай важное» → заголовок остаётся «сделай важное», <code>confidence 0.00</code>, источник <code>heuristic</code>, причина <code>AMBIGUOUS_INPUT</code>. Срок и теги не выдуманы.</p>
+      </div>
+    </div>
+  </div>
+  <footer class="bar"><span>Часть II · Personal Assistant</span><span>08 / 12</span></footer>
+</section>
+
+<!-- 09 PART II SCREENS -->
+<section class="slide">
+  <div class="left-gold"></div>
+  <div class="kicker">Часть II · веб-панель</div>
+  <h1>Список, карточка, журнал</h1>
+  <div class="shots">
+    <div class="shot">
+      <div class="shot-wrap"><img src="../screenshots/tasks/list.png" alt="Список задач"></div>
+      <p class="shot-cap"><strong>Витрина</strong> <code>/tasks</code>. Красные строки — «требует проверки», фильтр отдельный.</p>
+    </div>
+    <div class="shot">
+      <div class="shot-wrap"><img src="../screenshots/tasks/review.png" alt="Карточка правки"></div>
+      <p class="shot-cap"><strong>Карточка</strong> <code>/tasks/&lt;id&gt;</code>. Сырой текст, источник, confidence, правка заголовка.</p>
+    </div>
+    <div class="shot">
+      <div class="shot-wrap"><img src="../screenshots/tasks/journal.png" alt="Журнал обработок"></div>
+      <p class="shot-cap"><strong>Аудит</strong> <code>/journal</code>. Время, статус, причина, confidence каждого запуска.</p>
+    </div>
+  </div>
+  <div class="grid-3" style="margin-top: 10px; flex: none;">
+    <div class="card">
+      <h2>Витрина</h2>
+      <p class="muted" style="margin:0;">Фильтр «Требует проверки» — отдельный список. Красная строка не смешивается с обычными задачами.</p>
+    </div>
+    <div class="card">
+      <h2>Карточка</h2>
+      <p class="muted" style="margin:0;">Сырой текст, источник и confidence. Правка заголовка снимает запись с проверки.</p>
+    </div>
+    <div class="card">
+      <h2>Журнал</h2>
+      <p class="muted" style="margin:0;">Каждый запуск: success или error, причина, confidence. Сбой виден, а не затирается.</p>
+    </div>
+  </div>
+  <footer class="bar"><span>Часть II · Personal Assistant</span><span>09 / 12</span></footer>
+</section>
+
+<!-- 10 ECONOMY -->
+<section class="slide">
+  <div class="left-gold"></div>
+  <div class="kicker">Мини-экономика · расчёт на салфетке</div>
+  <h1>100 операций: 50 минут против 6</h1>
+  <div class="grid-4" style="flex: 0.85;">
+    <div class="card">
+      <h2>До · 1 операция</h2>
+      <div class="stat bad">~50 мин</div>
+      <p class="muted">15–20 мин разобрать заявку и 40–60 мин собрать КП.</p>
+    </div>
+    <div class="card">
+      <h2>После · 1 операция</h2>
+      <div class="stat good">~6 мин</div>
+      <p class="muted">Вставить текст и проверить то, что система уже разложила.</p>
+    </div>
+    <div class="card">
+      <h2>100 операций · до</h2>
+      <div class="stat bad">41 500 ₽</div>
+      <p class="muted">~83 часа × 500 ₽/час.</p>
+    </div>
+    <div class="card">
+      <h2>100 операций · после</h2>
+      <div class="stat good">~6 400 ₽</div>
+      <p class="muted">5 000 ₽ проверка + ~700 ₽ OpenAI + ~700 ₽ VPS.</p>
+    </div>
+  </div>
+  <div class="grid-3" style="flex: 0.7;">
+    <div class="card">
+      <h2>Экономия времени</h2>
+      <div class="stat gold">~35 000 ₽</div>
+      <p class="muted">на каждые 100 операций, если считать только часы людей.</p>
+    </div>
+    <div class="card">
+      <h2>Базовый сценарий</h2>
+      <div class="stat good">~1 неделя</div>
+      <p class="muted">Высвобождение часов плюс одна лишняя сделка: 1,2 млн ₽ маржи.</p>
+    </div>
+    <div class="card">
+      <h2>Масштаб API</h2>
+      <div class="stat">0,25%</div>
+      <p class="muted">Бюджет ~100 разборов — четверть процента маржи одного дома.</p>
+    </div>
+  </div>
+  <p class="quote">Ценность не в сэкономленных минутах. Заявка не остывает: ответ за минуты вместо часов даёт +10–15% к замеру. Помощник при этом не штампует уверенные задачи из мусорного текста.</p>
+  <footer class="bar"><span>Источник: отчёт 08.10.2026 · docs/ROI.md · ставка 500 ₽/ч</span><span>10 / 12</span></footer>
+</section>
+
+<!-- 11 QUALITY -->
+<section class="slide">
+  <div class="left-gold"></div>
+  <div class="kicker">Контроль качества · живые прогоны</div>
+  <h1>Где модель сильнее правил — и где человек остаётся</h1>
+  <div class="grid-2">
+    <div class="card">
+      <h2>Golden set · 15 протоколов · 30.09.2026</h2>
+      <table>
+        <thead>
+          <tr><th>Поле</th><th>Regex</th><th>LLM v1 в проде</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Exact эталон</td><td class="heat-bad">8/15 · 53%</td><td class="heat-ok">14/15 · 93%</td></tr>
+          <tr><td><code>budget_rub</code></td><td class="heat-bad">0.00</td><td class="heat-ok">1.00</td></tr>
+          <tr><td><code>start_date</code></td><td class="heat-bad">0.30</td><td class="heat-ok">1.00</td></tr>
+          <tr><td><code>financing</code></td><td class="heat-bad">0.50</td><td class="heat-ok">1.00</td></tr>
+          <tr><td><code>area_m2</code></td><td class="heat-bad">0.54</td><td class="heat-ok">0.96</td></tr>
+        </tbody>
+      </table>
+      <p class="tiny" style="margin-top:8px;">Промпт v2 (few-shot, снимок 29.09) — 15/15. В проде сейчас v1. Пороги: эталон ≥ 80% → КП, 50–79% → дозаполнить, &lt; 50% → перезвонить.</p>
+    </div>
+    <div class="card">
+      <h2>10 входов помощника · reports/item_tests.md</h2>
+      <div class="split-stat">
+        <div>
+          <div class="stat good">9 llm</div>
+          <p class="tiny">из 10 разобраны моделью</p>
+        </div>
+        <div>
+          <div class="stat gold">2</div>
+          <p class="tiny">ушли на проверку</p>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:14px;">Оба спорных входа — <code>AMBIGUOUS_INPUT</code>: шум и «сделай важное». Четыре задачи получили срок и приоритет. Четыре заметки не превратились в фальшивые дедлайны.</p>
+      <ul>
+        <li>Температура извлечения 0.2 — схема, не сочинение.</li>
+        <li>Цену КП считает прайс, не модель.</li>
+        <li>Нет OpenAI — regex или эвристика, флаг проверки, запись ошибки. Процесс не останавливается.</li>
+      </ul>
+    </div>
+  </div>
+  <footer class="bar"><span>OfferDesk · финал</span><span>11 / 12</span></footer>
+</section>
+
+<!-- 12 CLOSE -->
+<section class="slide">
+  <div class="left-gold"></div>
+  <div class="kicker">Итог</div>
+  <h1>Что можно показать за минуту</h1>
+  <div class="grid-3">
+    <div class="card">
+      <h2>Проблема</h2>
+      <p class="muted">Отдел теряет лиды, пока менеджер вручную разбирает звонок и собирает КП. Рядом теряется поток коротких поручений — они не доходят до списка дел.</p>
+    </div>
+    <div class="card">
+      <h2>Решение</h2>
+      <p class="muted">Один сервис, две схемы JSON. Квалификатор ведёт сделку. Помощник ведёт задачу. Оба пишут аудит и отдают сомнительное человеку, а не «додумывают».</p>
+    </div>
+    <div class="card">
+      <h2>Результат</h2>
+      <p class="muted">Три точки на каждую часть. Шесть таблиц. Три экрана панели у каждой части. Около 35 000 ₽ на 100 операций и неделя до окупаемости, если приходит одна лишняя сделка.</p>
+    </div>
+  </div>
+  <div class="card" style="flex:0.85; border-color:#c4b59a; justify-content:center;">
+    <div class="grid-3" style="flex:none;">
+      <div>
+        <h2>Репозиторий</h2>
+        <p style="font-size:16px; margin:0;">github.com/PavelKarikoff/OfferDesk</p>
+        <p class="tiny" style="margin-top:6px;">релиз v1.2.2-final-checklist</p>
+      </div>
+      <div>
+        <h2>Прод</h2>
+        <p style="font-size:16px; margin:0;">194.67.103.144:5001</p>
+        <p class="tiny" style="margin-top:6px;"><code>/deals</code> · <code>/capture</code> · <code>/tasks</code> · <code>/journal</code></p>
+      </div>
+      <div>
+        <h2>Павел Кариков</h2>
+        <p style="font-family:'PT Serif',Georgia,serif; font-size:28px; margin:4px 0 0;">Спасибо. Вопросы?</p>
+      </div>
+    </div>
+  </div>
+  <footer class="bar"><span>Вайбкодинг Профессия · 8 октября 2026</span><span>12 / 12</span></footer>
+</section>
+
+</body>
+</html>
