@@ -17,6 +17,147 @@ AI-квалификатор лидов для ИЖС + веб-CRM отдела �
 > Zerocoder «от текста до действия». См. [`docs/README_TASKS.md`](docs/README_TASKS.md)
 > и [`docs/Отчет_выпускной_финал_2026_10_06.md`](docs/Отчет_выпускной_финал_2026_10_06.md).
 
+---
+
+## Personal Assistant — выпускной проект Zerocoder
+
+Персональный помощник «от текста до действия»: превращает поток входящего
+текста в структурированные задачи и заметки. Элементы с низкой уверенностью,
+невалидным JSON или слишком общим входом помечаются **«требует проверки»**.
+
+### Установка и запуск
+
+```bash
+git clone https://github.com/PavelKarikoff/OfferDesk.git
+cd OfferDesk
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+# заполнить .env (см. ниже)
+cd web_app && PYTHONPATH=.. python3 app.py
+# http://127.0.0.1:5001/capture
+```
+
+### Переменные окружения (`.env`)
+
+Обязательные для PA:
+
+| Переменная | Назначение | Пример |
+|---|---|---|
+| `OPENAI_API_KEY` | Ключ OpenAI | `sk-proj-...` |
+| `OPENAI_MODEL` | Модель | `gpt-4o-mini` |
+| `OPENAI_PROXY` | Прокси (если OpenAI недоступен с прода) | `http://5.129.213.88:8888` |
+| `SECRET_KEY` | Сессии Flask | любая случайная строка |
+| `FLASK_API_TOKEN` | Токен для API (опц.) | случайный токен |
+
+Полный список — в [`.env.example`](.env.example).
+
+### Примеры запросов (curl)
+
+**1. Точка 1 — создать сущность:**
+
+```bash
+curl -X POST http://127.0.0.1:5001/capture \
+     -H "Content-Type: application/json" \
+     -H "X-Api-Token: $FLASK_API_TOKEN" \
+     -d '{"text": "Позвонить Сергею завтра в 10:00"}'
+```
+
+**2. Точка 2 — витрина:**
+
+```bash
+curl -s "http://127.0.0.1:5001/tasks?status=open" \
+     -H "X-Api-Token: $FLASK_API_TOKEN"
+```
+
+**3. Точка 3 — ИИ-обработка (без записи в БД):**
+
+```bash
+curl -X POST http://127.0.0.1:5001/tasks/extract \
+     -H "Content-Type: application/json" \
+     -H "X-Api-Token: $FLASK_API_TOKEN" \
+     -d '{"text": "Идея: сделать AI-квалификатор ИЖС"}'
+```
+
+### База данных и аудит
+
+SQLite: `web_app/deals.db`
+
+Таблицы:
+
+- `items` — задачи и заметки (PA);
+- `audit_runs` — журнал обработок PA;
+- `deals`, `audit_log`, `action_log`, `users` — OfferDesk.
+
+Как посмотреть:
+
+```bash
+sqlite3 web_app/deals.db
+.tables
+SELECT * FROM items ORDER BY id DESC LIMIT 5;
+SELECT id, action, source, status, duration_ms FROM audit_runs ORDER BY id DESC LIMIT 5;
+```
+
+Веб-панель:
+
+- `/journal` — журнал `audit_runs`;
+- `/tasks/<id>` — карточка с сырым JSON.
+
+### Как воспроизвести «ручную проверку»
+
+**Тест 1 — шумный ввод:**
+
+```bash
+curl -X POST http://127.0.0.1:5001/capture \
+     -H "Content-Type: application/json" \
+     -d '{"text": "Аааа, всё горит, надо что-то делать"}'
+```
+
+Ожидаемо: `needs_review=true`, `review_reason="AMBIGUOUS_INPUT"`.
+
+**Тест 2 — плохой ввод:**
+
+```bash
+curl -X POST http://127.0.0.1:5001/capture \
+     -H "Content-Type: application/json" \
+     -d '{"text": "сделай важное"}'
+```
+
+Ожидаемо: `needs_review=true`, `source="heuristic"` (модель не вызывалась).
+
+Проверка в UI: открыть `/tasks?status=needs_review` — красные бейджи.
+
+Скрипт прогона 10 тестов:
+
+```bash
+python3 scripts/run_item_tests.py
+cat reports/item_tests.md
+```
+
+### Тестовые данные
+
+Папка [`tests_data/`](tests_data/):
+
+- 10 текстовых входов (`task_01.txt` … `bad_01.txt`);
+- `inputs.jsonl` — метаданные всех 10 тестов.
+
+### Docker
+
+```bash
+docker compose up -d --build api
+# http://127.0.0.1:5001
+```
+
+Подробнее — [`docs/DOCKER.md`](docs/DOCKER.md).
+
+### Документация
+
+- [`docs/README_TASKS.md`](docs/README_TASKS.md) — описание PA и карта приёмки
+- [`docs/Отчет_выпускной_финал_2026_10_08.md`](docs/Отчет_выпускной_финал_2026_10_08.md) — финальный отчёт
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — архитектура
+- [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md) — ограничения
+- [`docs/DOCKER.md`](docs/DOCKER.md) — контейнеризация
+
 ## Два продукта в одном репо
 
 1. **OfferDesk** — AI-квалификатор лидов для ИЖС. Сырой текст заявки (сайт, Авито, Циан, звонок) → JSON → квалификация A/B/C → эскалация → сделка в веб-CRM «Дом-Мастер»: карточка, эталон, PDF-КП, email. Вход: `POST /ingest`.

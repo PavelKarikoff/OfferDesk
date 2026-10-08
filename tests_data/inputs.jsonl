@@ -1,0 +1,10 @@
+{"id": 1, "file": "task_01.txt", "text": "Позвонить Сергею завтра в 10:00, обсудить смету по дому в МО", "expected_item_type": "task", "expected_needs_review": false}
+{"id": 2, "file": "task_02.txt", "text": "Отправить КП клиенту до пятницы", "expected_item_type": "task", "expected_needs_review": false}
+{"id": 3, "file": "task_03.txt", "text": "Купить кофе для офиса", "expected_item_type": "task", "expected_needs_review": false}
+{"id": 4, "file": "task_04.txt", "text": "Подготовить отчёт по продажам на следующей неделе", "expected_item_type": "task", "expected_needs_review": false}
+{"id": 5, "file": "note_01.txt", "text": "Идея: сделать AI-квалификатор входящих заявок для ИЖС", "expected_item_type": "note", "expected_needs_review": false}
+{"id": 6, "file": "note_02.txt", "text": "Сергей упомянул конкурента СтройДом — сравнивает цены", "expected_item_type": "note", "expected_needs_review": false}
+{"id": 7, "file": "note_03.txt", "text": "Прайс на газобетон изменился на 5% с октября", "expected_item_type": "note", "expected_needs_review": false}
+{"id": 8, "file": "note_04.txt", "text": "Подумать над новым шаблоном КП для клееного бруса", "expected_item_type": "note", "expected_needs_review": false}
+{"id": 9, "file": "noise_01.txt", "text": "Аааа, всё горит, надо что-то делать с этим", "expected_item_type": "note", "expected_needs_review": true, "expected_review_reason": "AMBIGUOUS_INPUT"}
+{"id": 10, "file": "bad_01.txt", "text": "сделай важное", "expected_item_type": "note", "expected_needs_review": true, "expected_review_reason": "AMBIGUOUS_INPUT"}
