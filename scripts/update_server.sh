@@ -213,7 +213,8 @@ sleep 1
 
 # Зависимости CRM + КП (тихо, если уже стоят)
 if command -v pip3 >/dev/null 2>&1; then
-  pip3 install -q flask werkzeug python-docx PyPDF2 jinja2 weasyprint openai python-dotenv waitress async_timeout aiohttp aiogram httpx 2>/dev/null || true
+  pip3 install -q flask werkzeug python-docx PyPDF2 jinja2 weasyprint openai python-dotenv waitress async_timeout aiohttp aiogram httpx 'gigachat>=0.2.3,<0.3' 2>/dev/null || true
+  python3 -c 'import gigachat' 2>/dev/null || echo "ВНИМАНИЕ: пакет gigachat не импортируется"
 fi
 
 # .env с OPENAI_API_KEY: корень репо или web_app
