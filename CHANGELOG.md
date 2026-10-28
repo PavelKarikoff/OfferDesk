@@ -5,6 +5,21 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версии — [SemVer](https://semver.org/lang/ru/).
 
+## [1.3.0] — 2026-10-28
+
+Текстовые запросы без VPN, выгрузка в Bitrix24 и обезличивание персональных данных перед провайдером LLM.
+
+### Добавлено
+
+- GigaChat (`utils/gigachat_client.py`): текстовые запросы при `LLM_PROVIDER=gigachat`. Переключатель модели в шапке CRM.
+- OpenAI через ProxyAPI: `PROXYAPI_API_KEY` и `OPENAI_BASE_URL`. Картинки по-прежнему идут в OpenAI Images API.
+- Обезличивание перед любым `chat_json`: имя, фамилия, телефон, почта и ник Telegram заменяются токенами и возвращаются в ответ в памяти. Журнал `logs/anonymization.csv` хранит только токены и обезличенный текст.
+- Bitrix24 (`web_app/bitrix_client.py`): по `B24_URL` уходят заявка, транскрибация и файл КП; при эскалации создаётся задача. Кнопка выгрузки в карточке сделки.
+
+### Изменено
+
+- Разбор транскрибации и классификация обращений идут через `chat_json`, а не прямым вызовом OpenAI.
+
 ## [1.1.0] — 2026-09-29
 
 AI-квалификатор лидов для ИЖС: LLM-слой поверх CRM
@@ -85,5 +100,6 @@ AI-квалификатор лидов для ИЖС: LLM-слой поверх 
 - ТЗ для внешнего инженера.
 - Выгрузка в внешнюю CRM.
 
+[1.3.0]: https://github.com/PavelKarikoff/OfferDesk/releases/tag/v1.3.0
 [1.1.0]: https://github.com/PavelKarikoff/OfferDesk/releases/tag/v1.1.0
 [1.0.0]: https://github.com/PavelKarikoff/OfferDesk/releases/tag/v1.0.0

@@ -1,10 +1,10 @@
 # OfferDesk
 
-AI-квалификатор лидов для ИЖС + веб-CRM отдела продаж «Дом-Мастер»:
-от транскрибации звонка до утверждённого коммерческого предложения клиенту.
+**Версия 1.3.0** (28.10.2026). AI-квалификатор лидов для ИЖС и веб-CRM отдела продаж «Дом-Мастер»: от транскрибации звонка до утверждённого коммерческого предложения и карточки в Bitrix24.
 
-**Не чат-бот.** Полноценное рабочее место менеджера в браузере: сделки,
-эталон протокола, генерация PDF-КП, утверждение и отправка.
+**Не чат-бот.** Полноценное рабочее место менеджера в браузере: сделки, эталон протокола, генерация PDF-КП, утверждение и отправка.
+
+В 1.3.0 текстовая модель — **GigaChat** или **OpenAI через ProxyAPI** (переключатель в шапке CRM). Имя, фамилия, телефон, почта и ник Telegram обезличиваются перед отправкой в провайдера. Если задан `B24_URL`, заявка, транскрибация и PDF КП уходят в Bitrix24.
 
 **Прод:** http://194.67.103.144:5001 · health: `GET /health`
 
@@ -227,7 +227,7 @@ docker compose up -d --build api
 
 ## Действие на выходе
 
-| Шаг | Сейчас (v1.1.0) | Roadmap |
+| Шаг | Сейчас (v1.3.0) | Roadmap |
 |---|---|---|
 | Сделка в CRM | карточка в OfferDesk, `lead_grade` A/B/C, `extraction_source`; лид в Bitrix24, если задан `B24_URL` | amoCRM |
 | Эскалация | бейдж + `audit_log` → юрист и/или руководитель ОП; задача в Bitrix24 | задача в amoCRM |
@@ -262,7 +262,7 @@ docker compose up -d --build api
 
 **Lead scoring A/B/C** по 6 факторам (бюджет, срок, участок, objections, sentiment, decision_maker): A ≥ 0.7, B ≥ 0.4, C < 0.4.
 
-**Отказоустойчивость:** LLM недоступен → regex-fallback; CRM не падает (regex-карточки сняты на проде v1.1.0). LLM-контур работает напрямую, без прокси — проверен живым прогоном golden set 30.09.
+**Отказоустойчивость:** LLM недоступен → regex-fallback; CRM не падает. Текстовый контур по умолчанию — GigaChat (без VPN). OpenAI идёт через ProxyAPI, если задан `PROXYAPI_API_KEY`. Перед вызовом провайдера персональные данные заменяются токенами `[ИМЯ_N]`, `[ТЕЛЕФОН_N]`, `[ПОЧТА_N]`, `[НИК_N]` и возвращаются в JSON ответа в памяти процесса. Словарь подстановки на диск не пишется.
 
 ---
 
@@ -329,7 +329,7 @@ Exact `etalon_score`: regex **8/15 (53.3%)** → LLM **14/15 (93.3%)**. Исто
 
 ### Инфраструктура
 
-Docker, Waitress + systemd на VPS, health каждые 5 минут, бэкап `deals.db`, OpenAI напрямую (VPN; при недоступности — regex-fallback). Тесты: **119 passed + 15 subtests** (`pytest` из корня). CLI/API генерации АР/ИР: `main.py`, `flask_app.py`, `go_server/`.
+Docker, Waitress + systemd на VPS, health каждые 5 минут, бэкап `deals.db`. Тексты: GigaChat или OpenAI через ProxyAPI; при недоступности модели — regex-fallback. Картинки по-прежнему генерирует OpenAI Images API. Тесты: `python3 -m pytest -q` из корня. CLI/API генерации АР/ИР: `main.py`, `flask_app.py`, `go_server/`.
 
 ---
 
@@ -342,7 +342,7 @@ Docker, Waitress + systemd на VPS, health каждые 5 минут, бэка�
 | Lead scoring | `extraction/scoring/lead_score.py` |
 | Аудит | `extraction/audit/logger.py` → `audit_log` |
 | CRM | Python 3.11+, Flask / Waitress, SQLite, Bootstrap 5 |
-| LLM | OpenAI API |
+| LLM | GigaChat или OpenAI через ProxyAPI (`LLM_PROVIDER`); обезличивание в `utils/anonymizer.py` |
 | PDF | Jinja2 → WeasyPrint |
 | Отправка | SMTP, Telegram Bot API |
 | Контейнеры | Docker, Docker Compose |
@@ -378,7 +378,11 @@ cp .env.example .env
 
 | Переменная | Назначение |
 |---|---|
-| `OPENAI_API_KEY` | ключ OpenAI |
+| `LLM_PROVIDER` | `gigachat` (по умолчанию) или `openai`. В CRM менеджер может переключить модель в шапке |
+| `GIGACHAT_CREDENTIALS` | Authorization Key GigaChat. В git не коммитить |
+| `GIGACHAT_SCOPE` | `GIGACHAT_API_PERS` для физлица; для компании — `GIGACHAT_API_B2B` или `GIGACHAT_API_CORP` |
+| `PROXYAPI_API_KEY` | ключ кабинета proxyapi.ru. Если задан, OpenAI идёт на `OPENAI_BASE_URL` без VPN |
+| `OPENAI_API_KEY` | прямой ключ OpenAI, если ProxyAPI не используется |
 | `OPENAI_MODEL` | по умолчанию `gpt-4o-mini` |
 | `SECRET_KEY` | сессии CRM |
 | `ETALON_KP_THRESHOLD` | порог эталона для КП (80) |
@@ -387,7 +391,7 @@ cp .env.example .env
 | `CRM_ADMIN_USERS` | доп. администраторы |
 | `TELEGRAM_BOT_TOKEN` | опционально: КП в Telegram |
 | `FLASK_API_TOKEN` | HTTP API генерации и `POST /ingest` |
-| `B24_URL` | входящий вебхук Bitrix24: заявка, транскрибация, КП |
+| `B24_URL` | входящий вебхук Bitrix24: заявка, транскрибация, КП. Пусто — выгрузка выключена |
 
 ### 4. Запуск CRM
 
@@ -524,7 +528,7 @@ BASE_URL=http://127.0.0.1:5001 ./scripts/check_endpoints.sh --quick
 │   ├── ARCHITECTURE.md
 │   ├── ROI.md
 │   ├── OFFER.md
-│   └── screenshots/       # в т.ч. prod_* для v1.1.0
+│   └── screenshots/       # карточки прода и кадры для защиты
 ├── main.py / flask_app.py / go_server/
 └── bot.py                 # не продукт: привязка чата и доставка КП
 ```
