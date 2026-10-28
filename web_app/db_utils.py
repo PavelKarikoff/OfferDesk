@@ -79,7 +79,7 @@ def connect_db(path: str = "deals.db") -> sqlite3.Connection:
 
 
 def ensure_items_table(conn: sqlite3.Connection) -> None:
-    """Таблица items — задачи и заметки (вариант 1: Персональный помощник)."""
+    """Таблица items — задачи и заметки персонального помощника."""
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -105,7 +105,7 @@ def ensure_items_table(conn: sqlite3.Connection) -> None:
 
 
 def ensure_audit_runs_table(conn: sqlite3.Connection) -> None:
-    """Таблица audit_runs — журнал обработок по ТЗ выпускного."""
+    """Таблица audit_runs — журнал обработок."""
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS audit_runs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

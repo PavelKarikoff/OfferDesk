@@ -56,7 +56,7 @@ def escalate(
 ) -> EscalationDecision | None:
     reasons: list[str] = []
 
-    # 1) Низкая уверенность LLM → эскалация (по чеклисту).
+    # 1) Низкая уверенность LLM → эскалация.
     #    Для regex не эскалируем: regex всегда 0.3, шум.
     if source == "llm" and extraction.confidence.overall < MIN_CONFIDENCE:
         reasons.append(f"low_confidence:{extraction.confidence.overall:.2f}")

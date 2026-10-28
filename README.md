@@ -18,7 +18,7 @@
 
 ---
 
-## Personal Assistant — выпускной проект Zerocoder
+## Personal Assistant
 
 Персональный помощник «от текста до действия»: превращает поток входящего
 текста в структурированные задачи и заметки. Элементы с низкой уверенностью,
@@ -193,7 +193,7 @@ docker compose up -d --build api
 
 ## Где LLM и JSON
 
-Модель поднимает из «сырого» текста заявки структуру. Пример для защиты (смысл полей):
+Модель поднимает из «сырого» текста заявки структуру. Пример (смысл полей):
 
 ```json
 {
@@ -254,7 +254,7 @@ docker compose up -d --build api
 - `source=llm` и `confidence.overall` < 0.6 → менеджер (нужны уточнения);
 - `etalon_score` < 30 → менеджер (нужны уточнения).
 
-`low_confidence` **не** эскалирует regex: канал всегда даёт 0.3, иначе эскалировалась бы каждая fallback-сделка. Сознательное отклонение от чеклиста: regex в проде в 71% случаев извлекает корректные поля; мало данных ловится через `etalon_score < 30`. См. [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md) и кадр для защиты [`docs/slides/quality-escalation.pdf`](docs/slides/quality-escalation.pdf).
+`low_confidence` **не** эскалирует regex: канал всегда даёт 0.3, иначе эскалировалась бы каждая fallback-сделка. Сознательное решение: regex в проде в 71% случаев извлекает корректные поля; мало данных ловится через `etalon_score < 30`. См. [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md) и схему [`docs/slides/quality-escalation.pdf`](docs/slides/quality-escalation.pdf).
 
 **Аудит** (`extraction/audit/logger.py` → таблица `audit_log`): вход, `source` (llm / regex / merged), JSON квалификации, `etalon_score`, `lead_grade`, `escalation_json`. Снимок прода: [`prod_audit_log.png`](docs/screenshots/prod_audit_log.png). Дашборд precision/recall в реальном времени — в roadmap; baseline уже есть по golden set.
 
@@ -272,7 +272,7 @@ docker compose up -d --build api
 
 **Окупаемость.** Один менеджер ≈ **150 тыс. ₽/мес**. Автоматизация высвобождает **~30% времени** и даёт **+10–15%** конверсии в замер. При среднем чеке **8 млн ₽** и марже **15%** окупаемость — **1–2 месяца**. Полный расчёт: [`docs/ROI.md`](docs/ROI.md).
 
-**Защита «до / после».** Golden set из 15 заявок, precision / recall по полям, пороговый тест от регрессий. LLM-контур (промпт v1, прогон 2026-09-30) против regex-baseline. Телефон сравнивается по цифрам, участок — по соткам:
+**Сравнение «до / после».** Golden set из 15 заявок, precision / recall по полям, пороговый тест от регрессий. LLM-контур (промпт v1, прогон 2026-09-30) против regex-baseline. Телефон сравнивается по цифрам, участок — по соткам:
 
 | Поле | Regex P / R | LLM Precision | LLM Recall | LLM F1 |
 |---|---|---|---|---|
@@ -311,7 +311,7 @@ Exact `etalon_score`: regex **8/15 (53.3%)** → LLM **14/15 (93.3%)**. Исто
 - текст или файл `.txt` / `.docx` / `.pdf`;
 - разбор через `extract()` (LLM → JSON → regex-fallback), не через голый `parse_transcript_local`;
 - оверрайды менеджера с пересчётом % эталона;
-- учебные протоколы в `knowledge_base/` и golden set в `tests/golden_set/`.
+- демо-протоколы в `knowledge_base/` и golden set в `tests/golden_set/`.
 
 ### Эталон и КП
 
@@ -526,7 +526,7 @@ BASE_URL=http://127.0.0.1:5001 ./scripts/check_endpoints.sh --quick
 │   ├── ARCHITECTURE.md
 │   ├── ROI.md
 │   ├── OFFER.md
-│   └── screenshots/       # карточки прода и кадры для защиты
+│   └── screenshots/       # карточки прода
 ├── main.py / flask_app.py / go_server/
 └── bot.py                 # не продукт: привязка чата и доставка КП
 ```
@@ -539,7 +539,7 @@ BASE_URL=http://127.0.0.1:5001 ./scripts/check_endpoints.sh --quick
 2. WhatsApp и автоответ с сайта / Авито.
 3. Актуальные прайсы из 1С.
 4. Дашборд точности извлечения (precision/recall в реальном времени).
-5. Черновик ответа клиенту отдельным вызовом LLM с `temperature=0.7`. Сейчас `utils.chat_json` фиксирован на `0.2` — это безопаснее для извлечения; креативный шаг потребует `chat_json(..., temperature=...)`. Фиктивный второй шаг при 0.2 на защиту не выносим.
+5. Черновик ответа клиенту отдельным вызовом LLM с `temperature=0.7`. Сейчас `utils.chat_json` фиксирован на `0.2` — это безопаснее для извлечения; креативный шаг потребует `chat_json(..., temperature=...)`. Фиктивный второй шаг при 0.2 не делаем.
 
 ---
 

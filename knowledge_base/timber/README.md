@@ -12,7 +12,7 @@
 | [standards.md](standards.md) | Правила: варианты, состав сметы, входит/не входит, гарантии |
 | [catalog.md](catalog.md) | Типовые проекты каталога клееного бруса |
 | [example_sirius.md](example_sirius.md) | Заполненный пример: проект «Сириус 2.0», вариант «Стандарт» |
-| [demo_protocol_19_08.txt](demo_protocol_19_08.txt) | Учебный протокол звонка (Дмитрий, клееный брус, 100–110 м²) |
+| [demo_protocol_19_08.txt](demo_protocol_19_08.txt) | Демо-протокол звонка (Дмитрий, клееный брус, 100–110 м²) |
 
 PDF рендерится из `templates/kp_timber_template.html` (наследует `templates/base_kp.html`). Контекст собирает `utils/timber_kp.py`.
 
