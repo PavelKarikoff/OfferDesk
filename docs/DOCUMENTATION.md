@@ -567,7 +567,6 @@ python main.py --kp --no-open
 | [`go_server/openapi.yaml`](../go_server/openapi.yaml) | копия OpenAPI рядом с Go-сервером |
 | [`docs/РУКОВОДСТВО_МЕНЕДЖЕРА.md`](РУКОВОДСТВО_МЕНЕДЖЕРА.md) | UX для менеджеров ОП |
 | [`docs/OPS_CRM.md`](OPS_CRM.md) | production: systemd, proxy, health, деплой |
-| [`docs/ОТЧЁТ_ДЛЯ_КУРАТОРА_AI_автоматизация.md`](ОТЧЁТ_ДЛЯ_КУРАТОРА_AI_автоматизация.md) | отчёт для куратора |
 | [`LICENSE`](../LICENSE) | MIT |
 
 ---

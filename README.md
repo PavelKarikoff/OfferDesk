@@ -13,9 +13,8 @@
 📊 **ROI:** `docs/ROI.md`
 🏗️ **Архитектура:** `docs/ARCHITECTURE.md`
 
-> **Второй продукт в репозитории:** Personal Assistant — выпускной проект
-> Zerocoder «от текста до действия». См. [`docs/README_TASKS.md`](docs/README_TASKS.md)
-> и [`docs/Отчет_выпускной_финал_2026_10_06.md`](docs/Отчет_выпускной_финал_2026_10_06.md).
+> **Второй продукт в репозитории:** Personal Assistant — «от текста до действия».
+> См. [`docs/README_TASKS.md`](docs/README_TASKS.md).
 
 ---
 
@@ -153,7 +152,6 @@ docker compose up -d --build api
 ### Документация
 
 - [`docs/README_TASKS.md`](docs/README_TASKS.md) — описание PA и карта приёмки
-- [`docs/Отчет_выпускной_финал_2026_10_08.md`](docs/Отчет_выпускной_финал_2026_10_08.md) — финальный отчёт
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — архитектура
 - [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md) — ограничения
 - [`docs/DOCKER.md`](docs/DOCKER.md) — контейнеризация
@@ -161,7 +159,7 @@ docker compose up -d --build api
 ## Два продукта в одном репо
 
 1. **OfferDesk** — AI-квалификатор лидов для ИЖС. Сырой текст заявки (сайт, Авито, Циан, звонок) → JSON → квалификация A/B/C → эскалация → сделка в веб-CRM «Дом-Мастер»: карточка, эталон, PDF-КП, email. Вход: `POST /ingest`.
-2. **Personal Assistant** — выпускной проект Zerocoder (вариант 1). Создать: `POST /capture`, витрина: `GET /tasks`, ИИ: `POST /tasks/extract`. См. [`docs/README_TASKS.md`](docs/README_TASKS.md) и [отчёт](docs/Отчет_выпускной_финал_2026_10_06.md).
+2. **Personal Assistant** — «от текста до действия». Создать: `POST /capture`, витрина: `GET /tasks`, ИИ: `POST /tasks/extract`. См. [`docs/README_TASKS.md`](docs/README_TASKS.md).
 
 ![Карточка сделки: regex, лид C, эскалация](docs/screenshots/prod_deal_card_escalation.png)
 

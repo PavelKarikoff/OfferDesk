@@ -123,7 +123,6 @@ cat reports/item_tests.md
 | **audit_runs:** action, input, output, status, error, duration_ms, created_at | таблица `audit_runs` | `sqlite3` |
 | **needs_review** | `item_pipeline.py:is_ambiguous()` | `bad_01.txt` |
 | **Веб-панель — 3 экрана** | `/tasks`, `/tasks/<id>`, `/journal` | скриншоты |
-| **Мини-экономика** | раздел 8 `ОТЧЁТ_ДИПЛОМ_ZEROCODER.md` | отчёт |
 
 ## Стек
 
