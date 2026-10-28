@@ -11,6 +11,8 @@
 
 # --- LLM / HTTP ---
 openai>=1.40.0,<3
+# GigaChat — текстовые запросы без VPN (сертификат Минцифры, ключ в .env)
+gigachat>=0.2.3,<0.3
 # OpenAI SDK тянет httpx / pydantic транзитивно
 
 # --- Telegram bot ---

@@ -1,13 +1,3 @@
-import json
-import openai
-import os
-
-# Загружаем ключ из .env
-from dotenv import load_dotenv
-load_dotenv()
-
-openai.api_key = os.getenv('OPENAI_API_KEY')
-
 PARSER_PROMPT = """
 Ты — ассистент отдела продаж строительной компании. Твоя задача — проанализировать протокол телефонного разговора и извлечь структурированные данные.
 
@@ -44,7 +34,7 @@ PARSER_PROMPT = """
 
 def parse_transcript(text: str) -> dict:
     """
-    Парсит транскрибацию через OpenAI и возвращает структурированные данные
+    Парсит транскрибацию через текущую LLM (GigaChat или OpenAI).
     """
     try:
         import sys
@@ -53,22 +43,9 @@ def parse_transcript(text: str) -> dict:
         root = Path(__file__).resolve().parent.parent
         if str(root) not in sys.path:
             sys.path.insert(0, str(root))
-        from utils.ai_processor import get_openai_client
+        from utils.ai_processor import chat_json
 
-        client = get_openai_client()
-        
-        response = client.chat.completions.create(
-            model=os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo'),
-            messages=[
-                {"role": "system", "content": PARSER_PROMPT},
-                {"role": "user", "content": text[:4000]}  # ограничиваем длину
-            ],
-            temperature=0.2,
-            response_format={"type": "json_object"}
-        )
-        
-        result = json.loads(response.choices[0].message.content)
-        return result
+        return chat_json(PARSER_PROMPT, text[:4000])
         
     except Exception as e:
         print(f"Ошибка парсинга: {e}")

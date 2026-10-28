@@ -21,6 +21,7 @@ _ALLOWED_IMAGE_HOST_SUFFIXES = (
     "openai.com",
     "oaiusercontent.com",
     "blob.core.windows.net",
+    "proxyapi.ru",
 )
 
 

@@ -67,6 +67,23 @@ class OpenAIClientTimeoutTests(unittest.TestCase):
         self.assertEqual(kwargs["max_retries"], 0)
         self.assertIn("http_client", kwargs)
 
+    def test_proxyapi_key_sets_base_url_and_skips_http_proxy(self):
+        env = {
+            "OPENAI_API_KEY": "sk-openai",
+            "PROXYAPI_API_KEY": "sk-proxyapi",
+            "OPENAI_PROXY": "http://proxy.example:8888",
+            "OPENAI_BASE_URL": "https://api.proxyapi.ru/v1",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            with patch("utils.ai_processor.OpenAI") as mock_cls:
+                from utils.ai_processor import get_openai_client
+
+                get_openai_client()
+        kwargs = mock_cls.call_args.kwargs
+        self.assertEqual(kwargs["api_key"], "sk-proxyapi")
+        self.assertEqual(kwargs["base_url"], "https://api.proxyapi.ru/v1")
+        self.assertNotIn("http_client", kwargs)
+
 
 if __name__ == "__main__":
     unittest.main()

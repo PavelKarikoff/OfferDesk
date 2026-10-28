@@ -9,6 +9,18 @@
     <style>
         body { background: #f5f7fb; }
         .navbar-brand { font-weight: 700; }
+        .llm-switch {
+            width: auto;
+            min-width: 7.6rem;
+            background-color: #2b3035;
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.35);
+            font-size: 0.8rem;
+        }
+        .llm-switch:focus {
+            border-color: #fff;
+            box-shadow: 0 0 0 0.15rem rgba(255, 255, 255, 0.25);
+        }
         .progress.etalon-bar { height: 22px; width: 88px; font-size: 12px; font-weight: 700; }
         .cell-missing { color: #dc3545; font-weight: 600; white-space: nowrap; }
         .table td { vertical-align: middle; font-size: 13px; max-width: 140px; word-break: break-word; }
@@ -161,8 +173,16 @@
                         </a>
                     </li>
                 </ul>
-                <div class="d-flex align-items-center gap-3 pb-2 pb-lg-0">
-                    <span class="text-white-50 small">
+                <div class="d-flex align-items-center gap-2 gap-lg-3 pb-2 pb-lg-0">
+                    <label class="text-white-50 small mb-0" for="llmProvider">Модель</label>
+                    <select id="llmProvider" class="form-select form-select-sm llm-switch"
+                            aria-label="Модель для разбора звонка и текстов КП"
+                            data-current="{{ llm_choice }}"
+                            data-openai-route="{{ 'proxyapi' if openai_via_proxyapi else 'direct' }}">
+                        <option value="gigachat" {% if llm_choice == 'gigachat' %}selected{% endif %}>GigaChat</option>
+                        <option value="openai" {% if llm_choice == 'openai' %}selected{% endif %}>OpenAI</option>
+                    </select>
+                    <span class="text-white-50 small text-nowrap">
                         {{ session.get('user_name', session.get('username', 'Менеджер')) }}
                     </span>
                     <a class="btn btn-sm btn-outline-light" href="{{ url_for('logout') }}">Выйти</a>
@@ -376,6 +396,57 @@
                 hideBusy();
             }
         };
+
+        const llmSelect = document.getElementById('llmProvider');
+        if (llmSelect) {
+            llmSelect.addEventListener('change', async function () {
+                const next = llmSelect.value;
+                const previous = llmSelect.getAttribute('data-current') || 'gigachat';
+                if (next === previous) return;
+                const viaProxyApi = llmSelect.getAttribute('data-openai-route') === 'proxyapi';
+                if (next === 'openai' && !viaProxyApi) {
+                    const ok = await confirmDialog({
+                        title: 'Нужен обход блокировок',
+                        body: 'OpenAI из этой сети часто недоступен. Включите сервис обхода блокировок, иначе разбор звонка и тексты КП не дойдут до модели.',
+                        okText: 'Включил, переключить',
+                        cancelText: 'Оставить GigaChat',
+                        okClass: 'btn-warning',
+                    });
+                    if (!ok) {
+                        llmSelect.value = previous;
+                        return;
+                    }
+                }
+                try {
+                    const response = await fetch('/llm-provider', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ provider: next }),
+                    });
+                    const data = await response.json().catch(function () { return {}; });
+                    if (!response.ok || data.status === 'error') {
+                        llmSelect.value = previous;
+                        toast((data && data.message) || 'Не удалось сменить модель', { variant: 'error', delay: 6500 });
+                        return;
+                    }
+                    llmSelect.setAttribute('data-current', next);
+                    if (next === 'openai' && viaProxyApi) {
+                        toast('Модель: OpenAI через ProxyAPI. VPN не нужен.', { variant: 'success' });
+                    } else if (next === 'openai') {
+                        toast('Модель: OpenAI. Без сервиса обхода блокировок запросы могут не пройти.', {
+                            variant: 'warning',
+                            delay: 7000,
+                        });
+                    } else {
+                        toast('Модель: GigaChat. Запросы идут без VPN.', { variant: 'success' });
+                    }
+                } catch (err) {
+                    llmSelect.value = previous;
+                    toast('Ошибка: ' + err, { variant: 'error', delay: 6500 });
+                }
+            });
+        }
 
         document.addEventListener('click', function (event) {
             const btn = event.target.closest('[data-delete-deal]');

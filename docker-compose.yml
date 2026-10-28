@@ -9,6 +9,13 @@ services:
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-3.5-turbo}
+      - PROXYAPI_API_KEY=${PROXYAPI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.proxyapi.ru/v1}
+      - LLM_PROVIDER=${LLM_PROVIDER:-gigachat}
+      - GIGACHAT_CREDENTIALS=${GIGACHAT_CREDENTIALS}
+      - GIGACHAT_SCOPE=${GIGACHAT_SCOPE:-GIGACHAT_API_PERS}
+      - GIGACHAT_MODEL=${GIGACHAT_MODEL:-}
+      - GIGACHAT_VERIFY_SSL_CERTS=${GIGACHAT_VERIFY_SSL_CERTS:-false}
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - DEBUG=${DEBUG:-False}
       - RATE_LIMIT=${RATE_LIMIT:-5}

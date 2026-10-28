@@ -46,6 +46,8 @@ ACTION_LABELS: dict[str, str] = {
     "kp_send_failed": "Ошибка отправки КП",
     "telegram_bound": "Telegram привязан",
     "reminder_sent": "Напоминание менеджеру",
+    "bitrix_exported": "Выгружено в Bitrix24",
+    "bitrix_failed": "Ошибка выгрузки в Bitrix24",
 }
 
 

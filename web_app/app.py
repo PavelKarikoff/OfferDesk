@@ -46,12 +46,22 @@ def inject_pricing():
     except Exception:
         timber_catalog = ()
         catalog_label = lambda p: p.get("name", "")  # noqa: E731
+    try:
+        from utils.ai_processor import llm_provider
+
+        llm_choice = llm_provider()
+    except Exception:
+        llm_choice = "gigachat"
+    if llm_choice not in {"gigachat", "openai"}:
+        llm_choice = "gigachat"
     return {
         "price_per_m2": PRICE_PER_M2,
         "price_per_m2_fmt": f"{PRICE_PER_M2:,}".replace(",", "\u00a0"),
         "is_admin": is_service_admin(),
         "timber_catalog": timber_catalog,
         "catalog_label": catalog_label,
+        "llm_choice": llm_choice,
+        "openai_via_proxyapi": bool(os.getenv("PROXYAPI_API_KEY", "").strip()),
     }
 
 
@@ -187,6 +197,18 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+
+@app.route('/llm-provider', methods=['POST'])
+@login_required
+def set_llm_provider():
+    """Выбор модели менеджера: действует на его следующие разборы и КП."""
+    payload = request.get_json(silent=True) or {}
+    value = str(payload.get("provider") or request.form.get("provider") or "").strip().lower()
+    if value not in {"gigachat", "openai"}:
+        return jsonify({"status": "error", "message": "Неизвестная модель"}), 400
+    session["llm_provider"] = value
+    return jsonify({"status": "ok", "provider": value})
 
 @app.route('/help')
 @login_required

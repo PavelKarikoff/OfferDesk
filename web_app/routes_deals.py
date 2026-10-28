@@ -156,6 +156,94 @@ def _deal_with_etalon(row: sqlite3.Row) -> dict:
     return deal
 
 
+def _try_push_bitrix(conn, deal_id: int, *, notify: bool) -> tuple[str | None, str | None]:
+    """Выгружает заявку, транскрибацию и КП. Пустой B24_URL — тихий пропуск.
+
+    Ошибка CRM не откатывает сделку: в журнал пишется bitrix_failed,
+    менеджеру возвращается текст предупреждения.
+    """
+    from datetime import datetime
+
+    from bitrix_client import BitrixError, bitrix_configured, publish_deal
+
+    if not bitrix_configured():
+        return None, None
+    row = conn.execute("SELECT * FROM deals WHERE id = ?", (deal_id,)).fetchone()
+    if not row:
+        return None, "Сделка не найдена."
+    deal = _deal_with_etalon(row)
+    from extraction.audit.logger import get_last_audit
+
+    audit = get_last_audit(conn, deal_id) or {}
+    kp_meta = _parse_kp_options(deal.get("kp_options"))
+    kp_pdf = None
+    if kp_meta and kp_meta.get("pdf_path"):
+        kp_pdf = _safe_kp_pdf_path(kp_meta["pdf_path"])
+    try:
+        result = publish_deal(
+            deal,
+            audit=audit,
+            kp_meta=kp_meta,
+            kp_pdf=kp_pdf,
+            notify=notify,
+        )
+    except BitrixError as exc:
+        log_action(
+            conn,
+            deal_id=deal_id,
+            action="bitrix_failed",
+            detail=exc.message[:500],
+            user_id=_actor_id(),
+        )
+        return None, exc.message
+
+    task_id = result.task_id if result.task_id is not None else deal.get("bitrix_task_id")
+    conn.execute(
+        """
+        UPDATE deals
+           SET bitrix_lead_id = ?,
+               bitrix_entity_type = ?,
+               bitrix_entity_id = ?,
+               bitrix_task_id = ?,
+               bitrix_synced_at = ?
+         WHERE id = ?
+        """,
+        (
+            result.lead_id,
+            result.entity_type,
+            result.entity_id,
+            task_id,
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            deal_id,
+        ),
+    )
+    detail = f"{result.entity_label} №{result.entity_id}"
+    if result.warning:
+        detail = f"{detail}. {result.warning}"[:500]
+    log_action(
+        conn,
+        deal_id=deal_id,
+        action="bitrix_exported",
+        detail=detail,
+        user_id=_actor_id(),
+    )
+    return f"В Bitrix24: {result.entity_label} №{result.entity_id}.", result.warning
+
+
+def _flash_bitrix(message: str | None, warning: str | None) -> None:
+    if message:
+        flash(message, "success")
+    if warning:
+        flash(warning, "warning" if message else "error")
+
+
+def _append_bitrix_note(message: str, bitrix_message: str | None, bitrix_warning: str | None) -> str:
+    extra = " ".join(part for part in (bitrix_message, bitrix_warning) if part)
+    if not extra:
+        return message
+    return f"{message} {extra}"
+
+
 def _maybe_run_reminders(conn: sqlite3.Connection, *, notify: bool = True) -> dict | None:
     """Тихая проверка зависших сделок (с cooldown на уровне сделок)."""
     try:
@@ -396,8 +484,10 @@ def new_deal():
                 lead=_lead,
                 error_detail=(meta or {}).get("llm_error") or "",
             )
+        bitrix_message, bitrix_warning = _try_push_bitrix(conn, deal_id, notify=True)
         conn.commit()
         conn.close()
+        _flash_bitrix(bitrix_message, bitrix_warning)
 
         score = validation.get('score', 0)
         if not validation.get('is_complete'):
@@ -790,6 +880,34 @@ def edit_deal(deal_id):
         status_labels=STATUS_LABELS,
     )
 
+
+@deals_bp.route('/<int:deal_id>/bitrix', methods=['POST'])
+@login_required
+def export_bitrix(deal_id):
+    """Ручная выгрузка заявки, транскрибации и КП в Bitrix24."""
+    from bitrix_client import bitrix_configured
+
+    conn = get_db()
+    row = conn.execute("SELECT id FROM deals WHERE id = ?", (deal_id,)).fetchone()
+    if not row:
+        conn.close()
+        flash("Сделка не найдена", "error")
+        return redirect(url_for("deals.list_deals"))
+    if not bitrix_configured():
+        conn.close()
+        flash(
+            "В файле .env не заполнен B24_URL. Сделка в OfferDesk сохранена, "
+            "в Битрикс24 заявка не отправлена.",
+            "error",
+        )
+        return redirect(url_for("deals.deal_detail", deal_id=deal_id))
+    message, warning = _try_push_bitrix(conn, deal_id, notify=True)
+    conn.commit()
+    conn.close()
+    _flash_bitrix(message, warning)
+    return redirect(url_for("deals.deal_detail", deal_id=deal_id))
+
+
 @deals_bp.route('/<int:deal_id>/generate-kp', methods=['POST'])
 @login_required
 def generate_kp(deal_id):
@@ -885,6 +1003,10 @@ def generate_kp(deal_id):
         action='kp_generated',
         detail=detail,
         user_id=_actor_id(),
+    )
+    message = _append_bitrix_note(
+        message,
+        *_try_push_bitrix(conn, deal_id, notify=False),
     )
     if normalize_status(deal.get('status')) != new_status:
         log_action(
@@ -1192,11 +1314,15 @@ def approve_kp(deal_id):
             detail=f'{status_label(deal.get("status"))} → {status_label(new_status)}',
             user_id=_actor_id(),
         )
+    approved_message = _append_bitrix_note(
+        f'КП утверждено: {approved.get("total_fmt")}',
+        *_try_push_bitrix(conn, deal_id, notify=False),
+    )
     conn.commit()
     conn.close()
     return jsonify({
         'status': 'success',
-        'message': f'КП утверждено: {approved.get("total_fmt")}',
+        'message': approved_message,
         'kp': approved,
         'download_url': url_for('deals.download_kp', deal_id=deal_id),
     })

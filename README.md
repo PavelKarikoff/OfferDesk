@@ -189,7 +189,7 @@ docker compose up -d --build api
 Уведомление менеджера  +  audit_log (вход → JSON → действие → результат)
 ```
 
-На проде этот контур крутится в OfferDesk CRM. Выгрузка в **amoCRM / Bitrix24** — в roadmap; схема слоёв не привязана к одной CRM.
+На проде этот контур крутится в OfferDesk CRM. Выгрузка в **Bitrix24** (лид, транскрибация, файл КП, задача при эскалации) идёт через входящий вебхук `B24_URL`. amoCRM — в roadmap.
 
 ---
 
@@ -229,11 +229,11 @@ docker compose up -d --build api
 
 | Шаг | Сейчас (v1.1.0) | Roadmap |
 |---|---|---|
-| Сделка в CRM | карточка в OfferDesk, `lead_grade` A/B/C, `extraction_source` | amoCRM / Bitrix24, тег квалификации |
-| Эскалация | бейдж + `audit_log` → юрист и/или руководитель ОП | задача в внешней CRM |
+| Сделка в CRM | карточка в OfferDesk, `lead_grade` A/B/C, `extraction_source`; лид в Bitrix24, если задан `B24_URL` | amoCRM |
+| Эскалация | бейдж + `audit_log` → юрист и/или руководитель ОП; задача в Bitrix24 | задача в amoCRM |
 | Ответ клиенту | email (SMTP); Telegram — канал КП | WhatsApp; черновик LLM при temperature 0.7 |
-| Задача менеджеру | уведомление + напоминание, если сделка стоит > 3 дней | постановка задачи в amo/Bitrix |
-| КП | PDF по эталону, если полей ≥ 80% | без изменений контура |
+| Задача менеджеру | уведомление + напоминание, если сделка стоит > 3 дней; при эскалации — задача в Bitrix24 | постановка задачи в amoCRM |
+| КП | PDF по эталону, если полей ≥ 80%; файл уходит в таймлайн Bitrix24 | без изменений контура |
 
 Живые карточки прода: [`prod_deal_card_lead.png`](docs/screenshots/prod_deal_card_lead.png) (сделка A, 71%, regex, лид C) и [`prod_deal_card_escalation.png`](docs/screenshots/prod_deal_card_escalation.png) (сделка B, эскалация `legal_risk`).
 
@@ -387,6 +387,7 @@ cp .env.example .env
 | `CRM_ADMIN_USERS` | доп. администраторы |
 | `TELEGRAM_BOT_TOKEN` | опционально: КП в Telegram |
 | `FLASK_API_TOKEN` | HTTP API генерации и `POST /ingest` |
+| `B24_URL` | входящий вебхук Bitrix24: заявка, транскрибация, КП |
 
 ### 4. Запуск CRM
 
@@ -532,7 +533,7 @@ BASE_URL=http://127.0.0.1:5001 ./scripts/check_endpoints.sh --quick
 
 ## Возможное развитие
 
-1. Выгрузка в amoCRM / Bitrix24 с тегом квалификации и задачей менеджеру.
+1. Выгрузка в amoCRM с тегом квалификации и задачей менеджеру. Bitrix24 уже принимает лид, транскрибацию и PDF КП.
 2. WhatsApp и автоответ с сайта / Авито.
 3. Актуальные прайсы из 1С.
 4. Дашборд точности извлечения (precision/recall в реальном времени).

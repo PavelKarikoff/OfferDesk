@@ -1,8 +1,18 @@
-"""Взаимодействие с OpenAI для анализа диалогов с клиентами."""
+"""Текстовые запросы к LLM для анализа диалогов с клиентами.
+
+Провайдер выбирается переменной LLM_PROVIDER: gigachat (по умолчанию,
+если задан GIGACHAT_CREDENTIALS) или openai. Картинки по-прежнему
+генерирует OpenAI Images API.
+
+Имя, фамилия, телефон, почта и ник Telegram вырезаются из user-текста
+до отправки и возвращаются в разобранный JSON сразу после ответа.
+Словарь подстановки на диск не пишется.
+"""
 
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from typing import Any
@@ -11,6 +21,14 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+_PII_TOKEN_NOTE = (
+    "Персональные данные заменены токенами [ИМЯ_N], [ТЕЛЕФОН_N], [ПОЧТА_N] и [НИК_N]. "
+    "Переноси токены в JSON без изменений. Не восстанавливай и не придумывай "
+    "имя, фамилию, телефон, почту и ник Telegram."
+)
 
 CLIENT_REPORT_PROMPT = """
 Ты — аналитик клиентских коммуникаций.
@@ -60,28 +78,42 @@ DESIGN_REPORT_PROMPT = """
 """.strip()
 
 
+PROXYAPI_DEFAULT_BASE_URL = "https://api.proxyapi.ru/v1"
+
+
+def proxyapi_api_key() -> str:
+    """Ключ кабинета proxyapi.ru. Пустая строка — шлюз не используется."""
+    return os.getenv("PROXYAPI_API_KEY", "").strip()
+
+
 def get_openai_client() -> OpenAI:
-    """Публичный доступ к OpenAI-клиенту (ключ из OPENAI_API_KEY, опционально прокси)."""
+    """Клиент OpenAI: через ProxyAPI, если задан PROXYAPI_API_KEY, иначе напрямую."""
     from utils.config import apply_outbound_proxy_env, openai_proxy_url
 
-    api_key = os.getenv("OPENAI_API_KEY")
+    gateway_key = proxyapi_api_key()
+    api_key = gateway_key or os.getenv("OPENAI_API_KEY")
     if not api_key or api_key == "your_openai_api_key_here":
         raise ValueError(
-            "Не задан OPENAI_API_KEY. Укажите ключ в файле .env"
+            "Не задан ключ модели. Впишите PROXYAPI_API_KEY или OPENAI_API_KEY в файл .env"
         )
 
-    apply_outbound_proxy_env()
-    proxy = openai_proxy_url()
     # Через прокси запросы дольше; жёсткий лимит, чтобы CRM не «висел».
     # max_retries=0 обязательно: дефолт SDK = 2, и 35с×3 ≈ 105с — curl/Waitress
     # обрывают запрос раньше, чем pipeline успеет уйти в regex-fallback.
+    proxy = None if gateway_key else openai_proxy_url()
+    if proxy:
+        apply_outbound_proxy_env()
     timeout_s = float(os.getenv("OPENAI_TIMEOUT", "35" if proxy else "60"))
     client_kwargs: dict[str, Any] = {
         "api_key": api_key,
         "timeout": timeout_s,
         "max_retries": 0,
     }
-    if proxy:
+    if gateway_key:
+        client_kwargs["base_url"] = (
+            os.getenv("OPENAI_BASE_URL", "").strip() or PROXYAPI_DEFAULT_BASE_URL
+        )
+    elif proxy:
         try:
             import httpx
         except ImportError as exc:  # pragma: no cover
@@ -134,8 +166,63 @@ def _normalize_fields(data: dict[str, Any], required_keys: tuple[str, ...]) -> d
     return result
 
 
+def llm_provider() -> str:
+    """Модель менеджера из сессии, иначе LLM_PROVIDER из .env.
+
+    Сессия есть только внутри запроса CRM. Скрипты и тесты без Flask
+    по-прежнему берут переменную окружения.
+    """
+    chosen = _session_provider()
+    if chosen:
+        return chosen
+    explicit = os.getenv("LLM_PROVIDER", "").strip().lower()
+    if explicit in {"gigachat", "openai"}:
+        return explicit
+    if os.getenv("GIGACHAT_CREDENTIALS", "").strip():
+        return "gigachat"
+    return "openai"
+
+
+def _session_provider() -> str:
+    try:
+        from flask import has_request_context, session
+    except ImportError:
+        return ""
+    if not has_request_context():
+        return ""
+    value = str(session.get("llm_provider") or "").strip().lower()
+    if value in {"gigachat", "openai"}:
+        return value
+    return ""
+
+
 def chat_json(system_prompt: str, user_prompt: str) -> dict[str, Any]:
-    """Chat Completions с response_format=json_object → dict."""
+    """Chat Completions → dict. В провайдер уходит обезличенный user-текст.
+
+    Подстановка имени, телефона, почты и ника Telegram делается здесь же, в памяти,
+    до того как JSON сохранится в сделку или попадёт в текст КП. Утверждение РОП модель
+    не вызывает и берёт эти поля из карточки.
+    """
+    from utils.anonymizer import anonymize, restore_data
+
+    safe_user, mapping = anonymize(user_prompt)
+    if mapping:
+        safe_user = f"{safe_user.rstrip()}\n\n{_PII_TOKEN_NOTE}"
+        _remember_anonymization(safe_user, mapping)
+
+    raw = _complete(system_prompt, safe_user)
+    return restore_data(_extract_json(raw), mapping)
+
+
+def _complete(system_prompt: str, user_prompt: str) -> str:
+    if llm_provider() == "gigachat":
+        from utils.gigachat_client import complete_chat
+
+        return complete_chat(system_prompt, user_prompt, temperature=0.2)
+    return _openai_chat(system_prompt, user_prompt)
+
+
+def _openai_chat(system_prompt: str, user_prompt: str) -> str:
     client = get_openai_client()
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     response = client.chat.completions.create(
@@ -147,8 +234,16 @@ def chat_json(system_prompt: str, user_prompt: str) -> dict[str, Any]:
             {"role": "user", "content": user_prompt},
         ],
     )
-    content = response.choices[0].message.content or ""
-    return _extract_json(content)
+    return response.choices[0].message.content or ""
+
+
+def _remember_anonymization(anonymized_text: str, mapping: dict[str, str]) -> None:
+    try:
+        from utils.anonymization_log import write_anonymization_log
+
+        write_anonymization_log(anonymized_text, mapping)
+    except OSError:
+        logger.warning("Не удалось записать журнал обезличивания")
 
 
 _chat_json = chat_json

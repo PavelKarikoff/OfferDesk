@@ -20,6 +20,11 @@ DEAL_EXTRA_COLUMNS: tuple[tuple[str, str], ...] = (
     ("telegram_outbox", "TEXT"),  # JSON очередь отправки КП (когда VPS не достучится до Telegram)
     ("catalog_project", "TEXT"),  # типовой проект каталога клееного бруса
     ("extraction_source", "TEXT"),  # llm | regex | merged — канал разбора транскрибации
+    ("bitrix_lead_id", "INTEGER"),
+    ("bitrix_entity_type", "TEXT"),  # lead | deal — куда пишется таймлайн
+    ("bitrix_entity_id", "INTEGER"),
+    ("bitrix_task_id", "INTEGER"),
+    ("bitrix_synced_at", "TEXT"),
 )
 
 

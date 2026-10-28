@@ -30,6 +30,13 @@
         <a href="{{ url_for('deals.edit_deal', deal_id=deal.id) }}" class="btn btn-primary">
             <i class="bi bi-pencil"></i> Редактировать
         </a>
+        <form method="post" action="{{ url_for('deals.export_bitrix', deal_id=deal.id) }}" class="d-inline">
+            <button type="submit" class="btn btn-outline-primary"
+                    title="Заявка, транскрибация звонка и КП">
+                <i class="bi bi-box-arrow-up-right"></i>
+                {% if deal.bitrix_entity_id %}Обновить в Bitrix24{% else %}В Bitrix24{% endif %}
+            </button>
+        </form>
         <button type="button" class="btn btn-outline-danger"
                 data-delete-deal="{{ deal.id }}"
                 data-client-name="{{ deal.client_name or '' }}"
@@ -128,6 +135,20 @@
                             <tr>
                                 <th>Создана</th>
                                 <td>{{ deal.created_at[:16] if deal.created_at else '—' }}</td>
+                            </tr>
+                            <tr>
+                                <th>Bitrix24</th>
+                                <td>
+                                    {% if deal.bitrix_entity_id %}
+                                        {{ 'сделка' if deal.bitrix_entity_type == 'deal' else 'лид' }}
+                                        №{{ deal.bitrix_entity_id }}
+                                        {% if deal.bitrix_synced_at %}
+                                            <div class="small text-muted">обновлено {{ deal.bitrix_synced_at[:16] }}</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">ещё не выгружалась</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                         </table>
                     </div>
@@ -511,6 +532,12 @@
             title="Удалить сделку">
         <i class="bi bi-trash"></i>
     </button>
+    <form method="post" action="{{ url_for('deals.export_bitrix', deal_id=deal.id) }}" class="d-flex flex-fill">
+        <button type="submit" class="btn btn-outline-primary btn-sm w-100"
+                title="Заявка, транскрибация и КП">
+            Bitrix
+        </button>
+    </form>
     {% if not ready %}
     <a href="{{ url_for('deals.incomplete_data', deal_id=deal.id) }}" class="btn btn-warning btn-sm">
         <i class="bi bi-list-check"></i> Пробелы

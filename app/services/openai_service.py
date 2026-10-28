@@ -1,6 +1,3 @@
-import json
-from ..config import Config
-
 PROMPT = """
 Ты — ассистент службы поддержки. Твоя задача: классифицировать обращение и написать черновик ответа.
 
@@ -24,23 +21,11 @@ PROMPT = """
 """
 
 def classify_ticket(text: str) -> dict:
-    """Классификация обращения через OpenAI API"""
+    """Классификация обращения через текущую LLM (GigaChat или OpenAI)."""
     try:
-        from utils.ai_processor import get_openai_client
+        from utils.ai_processor import chat_json
 
-        client = get_openai_client()
-        
-        response = client.chat.completions.create(
-            model=Config.OPENAI_MODEL,
-            messages=[
-                {"role": "system", "content": PROMPT},
-                {"role": "user", "content": text}
-            ],
-            temperature=Config.OPENAI_TEMPERATURE,
-            response_format={"type": "json_object"}
-        )
-        
-        result = json.loads(response.choices[0].message.content)
+        result = chat_json(PROMPT, text)
         
         required_fields = ['category', 'draft_reply', 'confidence', 'escalate']
         for field in required_fields:
@@ -53,7 +38,7 @@ def classify_ticket(text: str) -> dict:
         return result
         
     except Exception as e:
-        print(f"OpenAI error: {e}")
+        print(f"LLM error: {e}")
         return {
             'category': 'other',
             'draft_reply': 'Ваше обращение принято. Менеджер свяжется с вами в ближайшее время.',
