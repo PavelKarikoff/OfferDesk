@@ -140,6 +140,9 @@ class CrmE2ESmokeTests(unittest.TestCase):
         r = self.client.get("/help")
         self.assertEqual(r.status_code, 200)
         self.assertIn("Справка".encode("utf-8"), r.data)
+        self.assertIn("GigaChat".encode("utf-8"), r.data)
+        self.assertIn("Bitrix24".encode("utf-8"), r.data)
+        self.assertIn("[ИМЯ_1]".encode("utf-8"), r.data)
         r = self.client.get("/dashboard")
         self.assertEqual(r.status_code, 200)
 
